@@ -1,71 +1,189 @@
-/* --- 1. ESTILOS GLOBAIS E VARIÁVEIS FOFAS --- */
+/* style.css - Tema Leticinha Fofo e Pastel */
+
 :root {
-    /* Paleta de Cores Fofas */
-    --cor-primaria: #ff69b4; /* Rosa Choque/Pink */
-    --cor-secundaria: #ffc0cb; /* Rosa Claro */
-    --cor-fundo: #f4f7f6; /* Fundo Suave */
-    --cor-texto: #333;
-    --cor-detalhe: #9370db; /* Lilás Suave */
-    --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra Leve */
-    --borda-arredondada: 15px;
+  /* CORREÇÃO: Cores fofas concretas */
+  --bg: #f4f7f6;        /* Fundo Suave (Quase branco) */
+  --card: #ffffff;      /* Fundo dos Cards (Branco Puro) */
+  --primary: #ff69b4;   /* Rosa Choque/Pink (Cor Principal) */
+  --accent: #9370db;    /* Lilás Suave (Para títulos e detalhes) */
+  --secondary-light: #ffc0cb; /* Rosa Claro para bordas */
+  --text: #333;         /* Cor do Texto Principal */
+
+  /* Variáveis de estilo */
+  --sombra-suave: 0 4px 12px rgba(0, 0, 0, 0.08); 
+  --borda-arredondada: 18px; /* Cantos bem arredondados */
+}
+
+* { 
+    box-sizing: border-box; 
+    margin: 0;
 }
 
 body {
-    font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif; 
-    background-color: var(--cor-fundo); /* O Fundo do App deve ser essa cor */
-    color: var(--cor-texto);
-    margin: 0;
-    padding: 0;
-    line-height: 1.6;
-}
-/* O restante do seu código CSS deve vir DEPOIS desse bloco. */
- 
-/* --- 3. ESTILOS DA SEÇÃO EXERCÍCIOS (VISUAL FOFO) --- */
-#exercicios-app {
-    padding: 15px;
-    background-color: white;
-    border-radius: var(--borda-arredondada);
-    box-shadow: var(--sombra-suave);
-    margin-bottom: 25px;
+  /* Fonte Fofa e Legível */
+  font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif; 
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding-bottom: 50px; /* Espaço para o rodapé */
 }
 
-#exercicios-app h2 {
-    color: var(--cor-detalhe); /* Lilás Suave */
-    margin-top: 0;
+.app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* --- HEADER E FOTO --- */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+  margin-bottom: 25px;
+  border-bottom: 2px solid var(--secondary-light); /* Detalhe Rosa */
+}
+
+header h1 {
+  font-size: 2em;
+  color: var(--primary);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 0.9em;
+  color: #777;
+}
+
+#top-photo {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 50%; /* Foto Circular! */
+  border: 4px solid var(--accent); /* Borda Lilás */
+  box-shadow: var(--sombra-suave);
+}
+
+/* --- ESTRUTURA PRINCIPAL (MAIN) --- */
+main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px; /* Mais espaço entre cards */
+}
+
+/* --- ESTILO DE TODOS OS CARDS --- */
+.card {
+  background: var(--card);
+  border-radius: var(--borda-arredondada);
+  padding: 18px;
+  box-shadow: var(--sombra-suave); /* Sombra suave */
+}
+
+.card h2 {
+    color: var(--accent); /* Títulos em Lilás */
     font-size: 1.5em;
-    border-bottom: 2px dashed var(--cor-secundaria);
+    border-bottom: 1px dashed var(--secondary-light);
     padding-bottom: 10px;
+    margin-top: 0;
+    margin-bottom: 15px;
 }
 
-/* Estilo da Lista (Cada exercício é um item fofo) */
-#exercicios-app ul {
-    list-style: none;
-    padding: 0;
+/* --- SEÇÃO EXERCÍCIOS / METAS (goals-card) --- */
+.goals-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
 }
 
-#exercicios-app li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: #fff0f5; /* Fundo Rosa Bem Claro */
-    margin-bottom: 10px;
-    padding: 12px;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: background-color 0.3s;
+.goal-item {
+  /* Estilo Card Fofo em cada item */
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:8px;
+  background: #fff0f5; /* Rosa muito claro */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: background-color 0.3s;
 }
 
-/* Efeito quando o exercício é concluído */
-#exercicios-app input[type="checkbox"]:checked + label {
-    text-decoration: line-through;
-    color: #a8a8a8;
+.goal-item label {
+  cursor: pointer;
+  flex:1;
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
-/* Estilização do Gráfico (Se você já tiver o canvas no HTML) */
+.goal-text.done {
+  text-decoration: line-through;
+  opacity: 0.6;
+  color: #a8a8a8;
+}
+
+.del-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.2em;
+  color: var(--primary); /* Cor fofa */
+}
+
+/* --- INPUTS E BOTÕES --- */
+.add-goal {
+  display:flex;
+  gap:8px;
+  margin-top:15px;
+}
+
+.add-goal input, #new-goal {
+  flex:1;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid var(--secondary-light);
+  font-size: 1em;
+}
+
+.add-goal button {
+  padding:10px 15px;
+  border-radius:10px;
+  border:none;
+  background:var(--primary);
+  color:white;
+  cursor:pointer;
+  font-weight: bold;
+}
+
+/* --- MENSAGEM DO DAVI --- */
+#next-msg {
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid var(--primary);
+    background: white;
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: bold;
+    display: block;
+    width: 100%;
+    margin-top: 15px;
+}
+
+/* --- GRÁFICO --- */
 #graficoProgresso {
     display: block;
     margin: 20px auto 0;
-    border: 1px solid var(--cor-secundaria);
+    border: 1px solid var(--secondary-light);
     border-radius: 10px;
-    background-color: #ffe4e8; /* Fundo do gráfico */
+    background-color: #ffe4e8; 
+}
+
+/* --- RODAPÉ --- */
+footer {
+  text-align:center;
+  margin-top:20px;
+  color:#777;
+  font-size:0.85em;
 }
