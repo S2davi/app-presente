@@ -1,17 +1,17 @@
-/* style.css - Tema Leticinha Fofo e Pastel */
+/* style.css - Tema Leticinha Fofo e Pastel - CORRIGIDO */
 
 :root {
-  /* CORREÇÃO: Cores fofas concretas */
-  --bg: #f4f7f6;        /* Fundo Suave (Quase branco) */
-  --card: #ffffff;      /* Fundo dos Cards (Branco Puro) */
-  --primary: #ff69b4;   /* Rosa Choque/Pink (Cor Principal) */
-  --accent: #9370db;    /* Lilás Suave (Para títulos e detalhes) */
-  --secondary-light: #ffc0cb; /* Rosa Claro para bordas */
-  --text: #333;         /* Cor do Texto Principal */
+  /* CORREÇÃO: Cores fofas concretas (MANTER ESTES NOMES) */
+  --bg: #f4f7f6;        
+  --card: #ffffff;      
+  --primary: #ff69b4;   /* Rosa Choque/Pink */
+  --accent: #9370db;    /* Lilás Suave */
+  --secondary-light: #ffc0cb; /* Rosa Claro */
+  --text: #333;         
 
   /* Variáveis de estilo */
   --sombra-suave: 0 4px 12px rgba(0, 0, 0, 0.08); 
-  --borda-arredondada: 18px; /* Cantos bem arredondados */
+  --borda-arredondada: 18px; 
 }
 
 * { 
@@ -20,12 +20,11 @@
 }
 
 body {
-  /* Fonte Fofa e Legível */
   font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif; 
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
-  padding-bottom: 50px; /* Espaço para o rodapé */
+  padding-bottom: 50px;
 }
 
 .app {
@@ -34,53 +33,54 @@ body {
   padding: 20px;
 }
 
-/* --- HEADER E FOTO (REVISÃO FINAL) --- */
+/* --- HEADER E FOTO --- */
 header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 15px 0;
-    margin-bottom: 25px;
-    border-bottom: 2px solid var(--secondary-light); /* Detalhe Rosa */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+  margin-bottom: 25px;
+  /* CORREÇÃO: Usando a variável correta --secondary-light */
+  border-bottom: 2px solid var(--secondary-light);
 }
 
 header h1 {
-    font-size: 2em;
-    color: var(--primary);
-    margin: 0;
+  /* CORREÇÃO: Usando a variável correta --primary */
+  color: var(--primary);
+  font-size: 2em;
+  margin: 0;
 }
 
 .subtitle {
-    font-size: 0.9em;
-    color: #777;
+  font-size: 0.9em;
+  color: #777;
 }
 
-/* NOVO BLOCO 1: O contêiner que força o tamanho e o círculo */
+/* --- ESTILOS DO NOVO CONTÊINER DA FOTO --- */
 .photo-container {
-    /* O "!important" é o que garante que o tamanho funcione em qualquer situação! */
-    width: 80px !important;    
-    height: 80px !important;
-    
-    border-radius: 50%; /* Faz o contêiner ficar redondo */
-    overflow: hidden; /* Esconde qualquer excesso */
-    border: 4px solid var(--accent); /* Borda Lilás Elegante */
+    width: 80px;    
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden; 
+    /* CORREÇÃO: Usando a variável correta --accent para a borda lilás */
+    border: 4px solid var(--accent); 
     box-shadow: var(--sombra-suave);
 }
 
-/* NOVO BLOCO 2: A imagem apenas preenche o contêiner */
 #top-photo {
-    width: 100%; /* Preenche 100% dos 80px do pai */
-    height: 100%; /* Preenche 100% dos 80px do pai */
-    object-fit: cover; /* Recorta a foto para caber sem distorcer */
+    /* A imagem preenche o contêiner de 80px x 80px */
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
 }
-}
+
 
 /* --- ESTRUTURA PRINCIPAL (MAIN) --- */
 main {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px; /* Mais espaço entre cards */
+  gap: 20px;
 }
 
 /* --- ESTILO DE TODOS OS CARDS --- */
@@ -88,19 +88,22 @@ main {
   background: var(--card);
   border-radius: var(--borda-arredondada);
   padding: 18px;
-  box-shadow: var(--sombra-suave); /* Sombra suave */
+  box-shadow: var(--sombra-suave);
 }
 
 .card h2 {
-    color: var(--accent); /* Títulos em Lilás */
+    /* CORREÇÃO: Usando a variável correta --accent para títulos */
+    color: var(--accent);
     font-size: 1.5em;
+    /* CORREÇÃO: Usando a variável correta --secondary-light */
     border-bottom: 1px dashed var(--secondary-light);
     padding-bottom: 10px;
     margin-top: 0;
     margin-bottom: 15px;
 }
 
-/* --- SEÇÃO EXERCÍCIOS / METAS (goals-card) --- */
+/* ... (Mantenha o resto do seu CSS inalterado, pois o problema estava nas variáveis) ... */
+
 .goals-card ul {
   list-style: none;
   padding: 0;
@@ -108,7 +111,6 @@ main {
 }
 
 .goal-item {
-  /* Estilo Card Fofo em cada item */
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -116,7 +118,7 @@ main {
   padding:12px;
   border-radius:10px;
   margin-bottom:8px;
-  background: #fff0f5; /* Rosa muito claro */
+  background: #fff0f5;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   transition: background-color 0.3s;
 }
@@ -140,7 +142,7 @@ main {
   background: transparent;
   cursor: pointer;
   font-size: 1.2em;
-  color: var(--primary); /* Cor fofa */
+  color: var(--primary);
 }
 
 /* --- INPUTS E BOTÕES --- */
