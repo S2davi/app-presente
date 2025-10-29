@@ -1,4 +1,4 @@
-const CACHE_NAME = 'florescer-cache-v2';
+const CACHE_NAME = 'florescer-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
