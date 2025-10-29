@@ -3,103 +3,52 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{app_title}</title>
+  <title>Leticinha App</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
-  <meta name="theme-color" content="{THEME['primary']}"/>
+  <meta name="theme-color" content="#ff69b4"/>
 </head>
-<script>
-let exerciciosFeitos = JSON.parse(localStorage.getItem('exerciciosFeitos')) || {ex1:false, ex2:false, ex3:false};
-
-function marcarExercicio(id) {
-  exerciciosFeitos[id] = document.getElementById(id).checked;
-  localStorage.setItem('exerciciosFeitos', JSON.stringify(exerciciosFeitos));
-  atualizarMeta();
-  desenharGrafico();
-}
-
-window.onload = function() {
-  for(let key in exerciciosFeitos){
-    document.getElementById(key).checked = exerciciosFeitos[key];
-  }
-  atualizarMeta();
-  desenharGrafico();
-}
-
-function atualizarMeta() {
-  let concluidos = Object.values(exerciciosFeitos).filter(v => v).length;
-  document.getElementById('meta-semanal').innerText = concluidos;
-}
-
-function desenharGrafico() {
-  let ctx = document.getElementById('graficoProgresso').getContext('2d');
-  ctx.clearRect(0, 0, 300, 150);
-  
-  let total = 3;
-  let concluidos = Object.values(exerciciosFeitos).filter(v => v).length;
-  let percent = (concluidos / total) * 100;
-  
-  ctx.fillStyle = '#ff69b4';
-  ctx.fillRect(0, 150 - percent*1.5, 50, percent*1.5);
-  
-  ctx.fillStyle = '#ccc';
-  ctx.fillRect(60, 0, 50, 150);
-}
-</script>
-</body>
-</html>
-
 <body>
   <div class="app">
+    
     <header>
       <div class="header-left">
-        <h1>{app_title}</h1>
-        <p class="subtitle">Para {girl_name} — cuidado, rotina e amor</p>
+        <h1>💖 Leticinha & Davi 💖</h1>
+        <p class="subtitle">Cuidado, rotina e amor</p>
       </div>
       <div class="header-right">
-        {photo_html}
+        <img src="header_foto.jpg1" alt="Foto do Casal" id="top-photo" /> 
       </div>
     </header>
-<!-- Seção Exercícios -->
-<section id="exercicios-app">
-  <h2>🏋️‍♀️ Exercícios Diários</h2>
-  
-  <div id="metas">
-    <h3>Meta semanal: <span id="meta-semanal">0</span>/7</h3>
-  </div>
-  
-  <ul id="lista-exercicios">
-    <li>
-      <input type="checkbox" id="ex1" onchange="marcarExercicio('ex1')">
-      <label for="ex1">Corrida / Caminhada (30 min)</label>
-    </li>
-    <li>
-      <input type="checkbox" id="ex2" onchange="marcarExercicio('ex2')">
-      <label for="ex2">Abdominais (3 séries)</label>
-    </li>
-    <li>
-      <input type="checkbox" id="ex3" onchange="marcarExercicio('ex3')">
-      <label for="ex3">Flexões (3 séries)</label>
-    </li>
-  </ul>
-    <canvas id="graficoProgresso" width="300" height="150"></canvas>
-</section>
-</div> <!-- fecha a div.app -->
-
-  <canvas id="graficoProgresso" width="300" height="150"></canvas>
-</section>
 
     <main>
-      <section class="card progress-card">
-        <h2>Progresso</h2>
-        <div class="progress-bar">
-          <div id="progress-fill"></div>
+      
+      <section id="exercicios-app" class="card goals-card">
+        <h2>🏋️‍♀️ Exercícios Diários</h2>
+        
+        <div id="metas">
+          <h3>Meta semanal: <span id="meta-semanal">0</span>/3</h3> 
         </div>
-        <p id="progress-text">0 / {len(goals)} concluídas</p>
+        
+        <ul id="lista-exercicios">
+          <li>
+            <input type="checkbox" id="ex1" onchange="marcarExercicio('ex1')">
+            <label for="ex1">Corrida / Caminhada (30 min)</label>
+          </li>
+          <li>
+            <input type="checkbox" id="ex2" onchange="marcarExercicio('ex2')">
+            <label for="ex2">Abdominais (3 séries)</label>
+          </li>
+          <li>
+            <input type="checkbox" id="ex3" onchange="marcarExercicio('ex3')">
+            <label for="ex3">Flexões (3 séries)</label>
+          </li>
+        </ul>
+        <canvas id="graficoProgresso" width="300" height="150"></canvas>
       </section>
 
       <section class="card goals-card">
-        <h2>Metas</h2>
+        <h2>✨ Metas Pessoais</h2>
         <ul id="goals-list"></ul>
         <div class="add-goal">
           <input id="new-goal" placeholder="Adicionar nova meta..." />
@@ -108,157 +57,193 @@ function desenharGrafico() {
       </section>
 
       <section class="card message-card">
-        <h2>Mensagem do Davi</h2>
-        <p id="motivate"></p>
-        <button id="next-msg">Próxima mensagem</button>
+        <h2>💌 Mensagem do Davi</h2>
+        <p id="motivate">...</p>
+        <button id="next-msg">Próxima mensagem surpresa!</button>
       </section>
+      
     </main>
 
     <footer>
       <p>Feito com ❤️ por Davi — um empurrãozinho para ela florescer.</p>
     </footer>
-  </div>
 
-  <script>
-    const DEFAULT_GOALS = {goals_js_array};
-    const MESSAGES = {messages_js_array};
+  </div> <script>
+    // ----------------------------------------------------------------
+    // SCRIPT DE EXERCÍCIOS (Seção 1)
+    // ----------------------------------------------------------------
+    let exerciciosFeitos = JSON.parse(localStorage.getItem('exerciciosFeitos')) || {ex1:false, ex2:false, ex3:false};
 
-    // --- Helpers de storage ---
+    function marcarExercicio(id) {
+      exerciciosFeitos[id] = document.getElementById(id).checked;
+      localStorage.setItem('exerciciosFeitos', JSON.stringify(exerciciosFeitos));
+      atualizarMeta();
+      desenharGrafico();
+    }
+    
+    function atualizarMeta() {
+      let concluidos = Object.values(exerciciosFeitos).filter(v => v).length;
+      const metaEl = document.getElementById('meta-semanal');
+      if(metaEl) metaEl.innerText = concluidos; 
+    }
+
+    function desenharGrafico() {
+      let ctx = document.getElementById('graficoProgresso');
+      if (!ctx) return; 
+      
+      ctx = ctx.getContext('2d');
+      ctx.clearRect(0, 0, 300, 150);
+      
+      let total = 3;
+      let concluidos = Object.values(exerciciosFeitos).filter(v => v).length;
+      let percent = (concluidos / total) * 100;
+      
+      ctx.fillStyle = '#ff69b4'; // Rosa forte
+      ctx.fillRect(0, 150 - percent * 1.5, 50, percent * 1.5);
+      
+      ctx.fillStyle = '#ccc';
+      ctx.fillRect(60, 0, 50, 150);
+    }
+    
+    // ----------------------------------------------------------------
+    // SCRIPT DE METAS E MENSAGENS (Seções 2 e 3)
+    // ----------------------------------------------------------------
+    // ** ATENÇÃO: SUBSTITUA ESTES VALORES PELOS SEUS DEFEITOS! **
+    const DEFAULT_GOALS = ["Beber 2L de água", "Ler 10 páginas", "Fazer uma pausa de 10 min"]; // Exemplo de Metas
+    const MESSAGES = ["Você é a pessoa mais incrível que eu conheço!", "Eu te amo mais a cada dia 💖", "Lembre-se: eu te amo!"]; // Exemplo de Mensagens
+    // ***************************************************************
+    
     const STORAGE_KEY = "florescer_state_v1";
 
-    function loadState() {{
+    function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {{
-        return {{
-          goals: DEFAULT_GOALS.map(g => ({{
-            text: g,
-            done: false
-          }})),
+      if (!raw) {
+        return {
+          goals: DEFAULT_GOALS.map(g => ({ text: g, done: false })),
           messageIndex: 0
-        }};
-      }}
-      try {{
-        return JSON.parse(raw);
-      }} catch(e) {{
-        return {{
-          goals: DEFAULT_GOALS.map(g => ({{
-            text: g,
-            done: false
-          }})),
-          messageIndex: 0
-        }};
-      }}
-    }}
+        };
+      }
+      try {
+        const state = JSON.parse(raw);
+        if (!state.goals || !Array.isArray(state.goals)) {
+             return { goals: DEFAULT_GOALS.map(g => ({ text: g, done: false })), messageIndex: 0 };
+        }
+        return state;
+      } catch(e) {
+        return { goals: DEFAULT_GOALS.map(g => ({ text: g, done: false })), messageIndex: 0 };
+      }
+    }
 
-    function saveState(state) {{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }}
+    const stateGoals = loadState();
 
-    // --- UI Rendering ---
-    const state = loadState();
+    function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
-    function renderGoals() {{
+    function renderGoals() {
       const ul = document.getElementById("goals-list");
+      if (!ul) return;
+      
       ul.innerHTML = "";
-      state.goals.forEach((g, i) => {{
+      stateGoals.goals.forEach((g, i) => {
         const li = document.createElement("li");
         li.className = "goal-item";
         li.innerHTML = `
           <label>
-            <input type="checkbox" data-i="${{i}}" class="goal-chk" ${g.done ? "checked" : ""}/>
-            <span class="goal-text ${{g.done ? "done" : ""}}">${{g.text}}</span>
+            <input type="checkbox" data-i="${i}" class="goal-chk" ${g.done ? "checked" : ""}/>
+            <span class="goal-text ${g.done ? "done" : ""}}">${g.text}</span>
           </label>
-          <button class="del-btn" data-i="${{i}}">✕</button>
+          <button class="del-btn" data-i="${i}">✕</button>
         `;
         ul.appendChild(li);
-      }});
+      });
       attachGoalEvents();
       updateProgress();
-    }}
+    }
 
-    function attachGoalEvents() {{
-      document.querySelectorAll(".goal-chk").forEach(chk => {{
-        chk.addEventListener("change", (e) => {{
+    function attachGoalEvents() {
+      document.querySelectorAll(".goal-chk").forEach(chk => {
+        chk.addEventListener("change", (e) => {
           const i = e.target.dataset.i;
-          state.goals[i].done = e.target.checked;
-          saveState(state);
+          stateGoals.goals[i].done = e.target.checked;
+          saveState(stateGoals);
           renderGoals();
-        }});
-      }});
-      document.querySelectorAll(".del-btn").forEach(btn => {{
-        btn.addEventListener("click", (e) => {{
+        });
+      });
+      document.querySelectorAll(".del-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
           const i = e.target.dataset.i;
-          state.goals.splice(i,1);
-          saveState(state);
+          stateGoals.goals.splice(i,1);
+          saveState(stateGoals);
           renderGoals();
-        }});
-      }});
-    }}
+        });
+      });
+    }
 
-    function updateProgress() {{
-      const done = state.goals.filter(g => g.done).length;
-      const total = state.goals.length;
+    function updateProgress() {
+      const done = stateGoals.goals.filter(g => g.done).length;
+      const total = stateGoals.goals.length;
       const pct = total ? Math.round((done/total)*100) : 0;
-      document.getElementById("progress-fill").style.width = pct + "%";
-      document.getElementById("progress-text").textContent = `${{done}} / ${{total}} concluídas`;
-    }}
+      const fill = document.getElementById("progress-fill");
+      const text = document.getElementById("progress-text");
+      
+      if(fill) { fill.style.width = pct + "%"; }
+      // A seção Progresso Geral não tem mais o texto de contagem no HTML fornecido, então o deixaremos invisível.
+    }
 
-    // --- Add goal ---
-    document.getElementById("add-btn").addEventListener("click", () => {{
-      const v = document.getElementById("new-goal").value.trim();
-      if (!v) return;
-      state.goals.push({{text: v, done: false}});
-      document.getElementById("new-goal").value = "";
-      saveState(state);
-      renderGoals();
-    }});
+    const addBtn = document.getElementById("add-btn");
+    const newGoalInput = document.getElementById("new-goal");
+    
+    if (addBtn && newGoalInput) {
+        addBtn.addEventListener("click", () => {
+          const v = newGoalInput.value.trim();
+          if (!v) return;
+          stateGoals.goals.push({text: v, done: false});
+          newGoalInput.value = "";
+          saveState(stateGoals);
+          renderGoals();
+        });
+    }
 
-    // --- Messages ---
-    function showMessage() {{
+    function showMessage() {
       const el = document.getElementById("motivate");
-      el.textContent = MESSAGES[state.messageIndex % MESSAGES.length];
-    }}
-    document.getElementById("next-msg").addEventListener("click", () => {{
-      state.messageIndex = (state.messageIndex + 1) % MESSAGES.length;
-      saveState(state);
+      if (el) { el.textContent = MESSAGES[stateGoals.messageIndex % MESSAGES.length]; }
+    }
+    
+    const nextMsgBtn = document.getElementById("next-msg");
+    if (nextMsgBtn) {
+        nextMsgBtn.addEventListener("click", () => {
+          stateGoals.messageIndex = (stateGoals.messageIndex + 1) % MESSAGES.length;
+          saveState(stateGoals);
+          showMessage();
+        });
+    }
+
+    // --- Inicialização (Chamada Única) ---
+    window.onload = function() {
+      // 1. Inicializa Exercícios
+      for(let key in exerciciosFeitos){
+        const element = document.getElementById(key);
+        if (element) {
+          element.checked = exerciciosFeitos[key];
+        }
+      }
+      atualizarMeta();
+      desenharGrafico();
+      
+      // 2. Inicializa Metas e Mensagens
+      renderGoals();
       showMessage();
-    }});
-
-    // --- Init ---
-    renderGoals();
-    showMessage();
-
-    // --- Ask for Notification permission (optional) ---
-    if ("Notification" in window) {{
-      if (Notification.permission === "default") {{
-        Notification.requestPermission().then(p => {{
-          // não fazemos nada intrusivo; apenas permitir caso ela queira
-        }});
-      }}
-    }}
-
-    // optional: simple daily reminder using localStorage timestamp (works only quando a aba está aberta)
-    function maybeShowDailyReminder() {{
-      const last = localStorage.getItem("florescer_last_reminder");
-      const today = new Date().toDateString();
-      if (last !== today) {{
-        // show simple in-page encouragement
-        if (Notification.permission === "granted") {{
-          new Notification("Pequeno lembrete 💕", {{
-            body: "Lembre-se de cuidar de você hoje. Eu tô torcendo por você — Davi"
-          }});
-        }} else {{
-          console.log("Lembrete diário: cuide-se hoje! 💖");
-        }}
-        localStorage.setItem("florescer_last_reminder", today);
-      }}
-    }}
-    maybeShowDailyReminder();
-
-    // Install service worker if available
-    if ('serviceWorker' in navigator) {{
+      
+      // 3. Opcional: Notificações
+      if ("Notification" in window) {
+        if (Notification.permission === "default") {
+          Notification.requestPermission();
+        }
+      }
+    };
+    
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.warn("SW failed", err));
-    }}
+    }
   </script>
 </body>
 </html>
