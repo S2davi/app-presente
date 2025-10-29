@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{app_title}</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="{THEME['primary']}"/>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-left">
+        <h1>{app_title}</h1>
+        <p class="subtitle">Para {girl_name} — cuidado, rotina e amor</p>
+      </div>
+      <div class="header-right">
+        {photo_html}
+      </div>
+    </header>
+
+    <main>
+      <section class="card progress-card">
+        <h2>Progresso</h2>
+        <div class="progress-bar">
+          <div id="progress-fill"></div>
+        </div>
+        <p id="progress-text">0 / {len(goals)} concluídas</p>
+      </section>
+
+      <section class="card goals-card">
+        <h2>Metas</h2>
+        <ul id="goals-list"></ul>
+        <div class="add-goal">
+          <input id="new-goal" placeholder="Adicionar nova meta..." />
+          <button id="add-btn">Adicionar</button>
+        </div>
+      </section>
+
+      <section class="card message-card">
+        <h2>Mensagem do Davi</h2>
+        <p id="motivate"></p>
+        <button id="next-msg">Próxima mensagem</button>
+      </section>
+    </main>
+
+    <footer>
+      <p>Feito com ❤️ por Davi — um empurrãozinho para ela florescer.</p>
+    </footer>
+  </div>
+
+  <script>
+    const DEFAULT_GOALS = {goals_js_array};
+    const MESSAGES = {messages_js_array};
+
+    // --- Helpers de storage ---
+    const STORAGE_KEY = "florescer_state_v1";
+
+    function loadState() {{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {{
+        return {{
+          goals: DEFAULT_GOALS.map(g => ({{
+            text: g,
+            done: false
+          }})),
+          messageIndex: 0
+        }};
+      }}
+      try {{
+        return JSON.parse(raw);
+      }} catch(e) {{
+        return {{
+          goals: DEFAULT_GOALS.map(g => ({{
+            text: g,
+            done: false
+          }})),
+          messageIndex: 0
+        }};
+      }}
+    }}
+
+    function saveState(state) {{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }}
+
+    // --- UI Rendering ---
+    const state = loadState();
+
+    function renderGoals() {{
+      const ul = document.getElementById("goals-list");
+      ul.innerHTML = "";
+      state.goals.forEach((g, i) => {{
+        const li = document.createElement("li");
+        li.className = "goal-item";
+        li.innerHTML = `
+          <label>
+            <input type="checkbox" data-i="${{i}}" class="goal-chk" ${g.done ? "checked" : ""}/>
+            <span class="goal-text ${{g.done ? "done" : ""}}">${{g.text}}</span>
+          </label>
+          <button class="del-btn" data-i="${{i}}">✕</button>
+        `;
+        ul.appendChild(li);
+      }});
+      attachGoalEvents();
+      updateProgress();
+    }}
+
+    function attachGoalEvents() {{
+      document.querySelectorAll(".goal-chk").forEach(chk => {{
+        chk.addEventListener("change", (e) => {{
+          const i = e.target.dataset.i;
+          state.goals[i].done = e.target.checked;
+          saveState(state);
+          renderGoals();
+        }});
+      }});
+      document.querySelectorAll(".del-btn").forEach(btn => {{
+        btn.addEventListener("click", (e) => {{
+          const i = e.target.dataset.i;
+          state.goals.splice(i,1);
+          saveState(state);
+          renderGoals();
+        }});
+      }});
+    }}
+
+    function updateProgress() {{
+      const done = state.goals.filter(g => g.done).length;
+      const total = state.goals.length;
+      const pct = total ? Math.round((done/total)*100) : 0;
+      document.getElementById("progress-fill").style.width = pct + "%";
+      document.getElementById("progress-text").textContent = `${{done}} / ${{total}} concluídas`;
+    }}
+
+    // --- Add goal ---
+    document.getElementById("add-btn").addEventListener("click", () => {{
+      const v = document.getElementById("new-goal").value.trim();
+      if (!v) return;
+      state.goals.push({{text: v, done: false}});
+      document.getElementById("new-goal").value = "";
+      saveState(state);
+      renderGoals();
+    }});
+
+    // --- Messages ---
+    function showMessage() {{
+      const el = document.getElementById("motivate");
+      el.textContent = MESSAGES[state.messageIndex % MESSAGES.length];
+    }}
+    document.getElementById("next-msg").addEventListener("click", () => {{
+      state.messageIndex = (state.messageIndex + 1) % MESSAGES.length;
+      saveState(state);
+      showMessage();
+    }});
+
+    // --- Init ---
+    renderGoals();
+    showMessage();
+
+    // --- Ask for Notification permission (optional) ---
+    if ("Notification" in window) {{
+      if (Notification.permission === "default") {{
+        Notification.requestPermission().then(p => {{
+          // não fazemos nada intrusivo; apenas permitir caso ela queira
+        }});
+      }}
+    }}
+
+    // optional: simple daily reminder using localStorage timestamp (works only quando a aba está aberta)
+    function maybeShowDailyReminder() {{
+      const last = localStorage.getItem("florescer_last_reminder");
+      const today = new Date().toDateString();
+      if (last !== today) {{
+        // show simple in-page encouragement
+        if (Notification.permission === "granted") {{
+          new Notification("Pequeno lembrete 💕", {{
+            body: "Lembre-se de cuidar de você hoje. Eu tô torcendo por você — Davi"
+          }});
+        }} else {{
+          console.log("Lembrete diário: cuide-se hoje! 💖");
+        }}
+        localStorage.setItem("florescer_last_reminder", today);
+      }}
+    }}
+    maybeShowDailyReminder();
+
+    // Install service worker if available
+    if ('serviceWorker' in navigator) {{
+      navigator.serviceWorker.register('sw.js').catch(err => console.warn("SW failed", err));
+    }}
+  </script>
+</body>
+</html>

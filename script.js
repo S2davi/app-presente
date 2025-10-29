@@ -1,0 +1,1 @@
+// script.js - vazio (lógica inline no HTML por simplicidade).
