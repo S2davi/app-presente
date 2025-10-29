@@ -152,3 +152,31 @@ footer {{
   color:#777;
   font-size:13px;
 }}
+
+/* --- 1. ESTILOS GLOBAIS E FUENTES FOFAS --- */
+:root {
+    /* Paleta de Cores Fofas */
+    --cor-primaria: #ff69b4; /* Rosa Choque/Pink */
+    --cor-secundaria: #ffc0cb; /* Rosa Claro */
+    --cor-fundo: #f4f7f6; /* Fundo Suave */
+    --cor-texto: #333;
+    --cor-detalhe: #9370db; /* Lilás Suave */
+    --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra Leve */
+    --borda-arredondada: 15px;
+}
+
+body {
+    font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif; /* Fonte Fofa e Legível */
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+/* Garante que o conteúdo do app tenha um visual limpo */
+.app {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
