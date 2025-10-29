@@ -1,0 +1,23 @@
+#exercicios-app {
+  font-family: Arial, sans-serif;
+  padding: 15px;
+  background-color: #fff0f5;
+  border-radius: 15px;
+  max-width: 400px;
+  margin: 10px auto;
+}
+
+h2 {
+  color: #ff69b4;
+  text-align: center;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  margin: 10px 0;
+  font-size: 16px;
+}

@@ -8,6 +8,47 @@
   <link rel="stylesheet" href="style.css" />
   <meta name="theme-color" content="{THEME['primary']}"/>
 </head>
+<script>
+let exerciciosFeitos = JSON.parse(localStorage.getItem('exerciciosFeitos')) || {ex1:false, ex2:false, ex3:false};
+
+function marcarExercicio(id) {
+  exerciciosFeitos[id] = document.getElementById(id).checked;
+  localStorage.setItem('exerciciosFeitos', JSON.stringify(exerciciosFeitos));
+  atualizarMeta();
+  desenharGrafico();
+}
+
+window.onload = function() {
+  for(let key in exerciciosFeitos){
+    document.getElementById(key).checked = exerciciosFeitos[key];
+  }
+  atualizarMeta();
+  desenharGrafico();
+}
+
+function atualizarMeta() {
+  let concluidos = Object.values(exerciciosFeitos).filter(v => v).length;
+  document.getElementById('meta-semanal').innerText = concluidos;
+}
+
+function desenharGrafico() {
+  let ctx = document.getElementById('graficoProgresso').getContext('2d');
+  ctx.clearRect(0, 0, 300, 150);
+  
+  let total = 3;
+  let concluidos = Object.values(exerciciosFeitos).filter(v => v).length;
+  let percent = (concluidos / total) * 100;
+  
+  ctx.fillStyle = '#ff69b4';
+  ctx.fillRect(0, 150 - percent*1.5, 50, percent*1.5);
+  
+  ctx.fillStyle = '#ccc';
+  ctx.fillRect(60, 0, 50, 150);
+}
+</script>
+</body>
+</html>
+
 <body>
   <div class="app">
     <header>
@@ -19,6 +60,34 @@
         {photo_html}
       </div>
     </header>
+<!-- Seção Exercícios -->
+<section id="exercicios-app">
+  <h2>🏋️‍♀️ Exercícios Diários</h2>
+  
+  <div id="metas">
+    <h3>Meta semanal: <span id="meta-semanal">0</span>/7</h3>
+  </div>
+  
+  <ul id="lista-exercicios">
+    <li>
+      <input type="checkbox" id="ex1" onchange="marcarExercicio('ex1')">
+      <label for="ex1">Corrida / Caminhada (30 min)</label>
+    </li>
+    <li>
+      <input type="checkbox" id="ex2" onchange="marcarExercicio('ex2')">
+      <label for="ex2">Abdominais (3 séries)</label>
+    </li>
+    <li>
+      <input type="checkbox" id="ex3" onchange="marcarExercicio('ex3')">
+      <label for="ex3">Flexões (3 séries)</label>
+    </li>
+  </ul>
+    <canvas id="graficoProgresso" width="300" height="150"></canvas>
+</section>
+</div> <!-- fecha a div.app -->
+
+  <canvas id="graficoProgresso" width="300" height="150"></canvas>
+</section>
 
     <main>
       <section class="card progress-card">
