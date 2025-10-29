@@ -34,35 +34,46 @@ body {
   padding: 20px;
 }
 
-/* --- HEADER E FOTO --- */
+/* --- HEADER E FOTO (REVISÃO FINAL) --- */
 header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 15px 0;
-  margin-bottom: 25px;
-  border-bottom: 2px solid var(--secondary-light); /* Detalhe Rosa */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 0;
+    margin-bottom: 25px;
+    border-bottom: 2px solid var(--secondary-light); /* Detalhe Rosa */
 }
 
 header h1 {
-  font-size: 2em;
-  color: var(--primary);
-  margin: 0;
+    font-size: 2em;
+    color: var(--primary);
+    margin: 0;
 }
 
 .subtitle {
-  font-size: 0.9em;
-  color: #777;
+    font-size: 0.9em;
+    color: #777;
 }
 
+/* NOVO BLOCO 1: O contêiner que força o tamanho e o círculo */
+.photo-container {
+    /* O "!important" é o que garante que o tamanho funcione em qualquer situação! */
+    width: 80px !important;    
+    height: 80px !important;
+    
+    border-radius: 50%; /* Faz o contêiner ficar redondo */
+    overflow: hidden; /* Esconde qualquer excesso */
+    border: 4px solid var(--accent); /* Borda Lilás Elegante */
+    box-shadow: var(--sombra-suave);
+}
+
+/* NOVO BLOCO 2: A imagem apenas preenche o contêiner */
 #top-photo {
-  width: 76px;
-  height: 76px;
-  object-fit: cover;
-  border-radius: 50%; /* Foto Circular! */
-  border: 4px solid var(--accent); /* Borda Lilás */
-  box-shadow: var(--sombra-suave);
+    width: 100%; /* Preenche 100% dos 80px do pai */
+    height: 100%; /* Preenche 100% dos 80px do pai */
+    object-fit: cover; /* Recorta a foto para caber sem distorcer */
+}
 }
 
 /* --- ESTRUTURA PRINCIPAL (MAIN) --- */
