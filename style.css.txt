@@ -1,59 +1,71 @@
-#exercicios-app {
-  font-family: Arial, sans-serif;
-  padding: 15px;
-  background-color: #fff0f5;
-  border-radius: 15px;
-  max-width: 400px;
-  margin: 10px auto;
+/* --- 1. ESTILOS GLOBAIS E VARIÁVEIS FOFAS --- */
+:root {
+    /* Paleta de Cores Fofas */
+    --cor-primaria: #ff69b4; /* Rosa Choque/Pink */
+    --cor-secundaria: #ffc0cb; /* Rosa Claro */
+    --cor-fundo: #f4f7f6; /* Fundo Suave */
+    --cor-texto: #333;
+    --cor-detalhe: #9370db; /* Lilás Suave */
+    --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra Leve */
+    --borda-arredondada: 15px;
 }
 
-h2 {
-  color: #ff69b4;
-  text-align: center;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  margin: 10px 0;
-  font-size: 16px;
-}
-/* --- 2. HEADER E FOTO --- */
-.app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 0;
-    margin-bottom: 20px;
-    border-bottom: 2px solid var(--cor-secundaria);
-}
-
-.app-header h1 {
-    color: var(--cor-primaria);
-    font-size: 1.8em;
-    margin: 0;
-}
-
-.app-header p {
+body {
+    font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif; 
+    background-color: var(--cor-fundo); /* O Fundo do App deve ser essa cor */
     color: var(--cor-texto);
     margin: 0;
-    font-size: 0.9em;
+    padding: 0;
+    line-height: 1.6;
 }
-
-.photo-container {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%; /* Foto Circular! */
-    overflow: hidden;
+/* O restante do seu código CSS deve vir DEPOIS desse bloco. */
+ 
+/* --- 3. ESTILOS DA SEÇÃO EXERCÍCIOS (VISUAL FOFO) --- */
+#exercicios-app {
+    padding: 15px;
+    background-color: white;
+    border-radius: var(--borda-arredondada);
     box-shadow: var(--sombra-suave);
-    border: 3px solid var(--cor-primaria); /* Borda Fofa */
+    margin-bottom: 25px;
 }
 
-.profile-photo {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+#exercicios-app h2 {
+    color: var(--cor-detalhe); /* Lilás Suave */
+    margin-top: 0;
+    font-size: 1.5em;
+    border-bottom: 2px dashed var(--cor-secundaria);
+    padding-bottom: 10px;
+}
+
+/* Estilo da Lista (Cada exercício é um item fofo) */
+#exercicios-app ul {
+    list-style: none;
+    padding: 0;
+}
+
+#exercicios-app li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff0f5; /* Fundo Rosa Bem Claro */
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.3s;
+}
+
+/* Efeito quando o exercício é concluído */
+#exercicios-app input[type="checkbox"]:checked + label {
+    text-decoration: line-through;
+    color: #a8a8a8;
+}
+
+/* Estilização do Gráfico (Se você já tiver o canvas no HTML) */
+#graficoProgresso {
+    display: block;
+    margin: 20px auto 0;
+    border: 1px solid var(--cor-secundaria);
+    border-radius: 10px;
+    background-color: #ffe4e8; /* Fundo do gráfico */
 }
