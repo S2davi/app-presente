@@ -78,9 +78,30 @@ header h1 {
 
 /* --- ESTRUTURA PRINCIPAL (MAIN) --- */
 main {
+  /* Layout de uma coluna para celular (padrão) */
   display: grid;
   grid-template-columns: 1fr;
   gap: 20px;
+}
+
+/* NOVO: Estilo para TELAS MAIORES (Tablets/Desktops) */
+@media (min-width: 600px) {
+    main {
+        /* Divide o espaço em 3 colunas para o layout moderno */
+        grid-template-columns: repeat(3, 1fr); 
+    }
+}
+
+/* NOVO: Regras para fazer o card de Metas/Exercícios ocupar duas colunas */
+.goals-card, .message-card {
+    grid-column: span 1; /* Padrão: Ocupa 1 coluna */
+}
+
+/* Faz o Card de Metas/Exercícios e Mensagem do Davi ocupar 2/3 do espaço em telas maiores */
+@media (min-width: 600px) {
+    .goals-card, .message-card {
+        grid-column: span 2; 
+    }
 }
 
 /* --- ESTILO DE TODOS OS CARDS --- */
@@ -199,4 +220,62 @@ footer {
   margin-top:20px;
   color:#777;
   font-size:0.85em;
+}
+
+/* --- ESTILOS DOS NOVOS CARDS (Mood e Water) --- */
+
+/* Estilo geral para botões de ação fofos */
+.add-button {
+    width: 100%;
+    padding: 10px;
+    border-radius: 12px;
+    border: none;
+    background: var(--primary); /* Rosa Choque */
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 15px;
+    font-size: 1.1em;
+    transition: background-color 0.2s;
+}
+
+.add-button:hover {
+    background: #e04a9e; /* Rosa escuro ao passar o mouse */
+}
+
+/* --- MOOD CARD --- */
+.mood-card {
+    grid-row: span 1; /* Ocupa 1 linha */
+    text-align: center;
+}
+
+#mood-emojis {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    font-size: 2.5em;
+    padding: 15px 0;
+}
+
+.mood-placeholder {
+    font-size: 0.9em;
+    color: #777;
+}
+
+/* --- WATER CARD --- */
+.water-card {
+    grid-row: span 1; /* Ocupa 1 linha */
+}
+
+#water-display {
+    text-align: center;
+    font-size: 2em;
+    min-height: 50px;
+    padding: 10px 0;
+    color: var(--accent);
+}
+
+.water-placeholder {
+    font-size: 0.9em;
+    color: #777;
 }
