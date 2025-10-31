@@ -1,0 +1,264 @@
+import Layout from "@/react-app/components/Layout";
+import { TrendingUp } from "lucide-react";
+
+export default function GoalsPage() {
+  return (
+    <Layout>
+      <div className="flex items-center gap-4 mb-8">
+        <TrendingUp className="w-8 h-8 text-pink-600" />
+        <h1 className="text-3xl font-bold text-gray-800">Metas de Longo Prazo</h1>
+      </div>
+      <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <p className="text-gray-600">
+          Esta página será dedicada a acompanhar o progresso de suas metas maiores (fitness, aprendizado, projetos, etc.) e registrar seu avanço.
+        </p>
+        <button className="mt-4 px-4 py-2 bg-pink-600 text-white font-medium rounded-xl hover:bg-pink-700 transition-colors">
+          + Nova Meta
+        </button>
+      </div>
+    </Layout>
+  );
+}
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Plus, Check, Trash2, TrendingUp, X } from "lucide-react";
+import Layout from "@/react-app/components/Layout";
+import { Goal, GoalProgress } from "@/shared/types";
+import { useAuth } from "@getmocha/users-service/react";
+
+// --- Funções de Ajuda (Hook para chamar a API) ---
+
+// Retorna a data de hoje no formato YYYY-MM-DD
+function getTodayDateString(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+interface GoalWithProgress extends Goal {
+  progressToday: boolean;
+  progressCount: number; // Quantidade de vezes que a meta foi atingida na frequência
+}
+
+export default function GoalsPage() {
+  const { user } = useAuth();
+  const [goals, setGoals] = useState<GoalWithProgress[]>([]);
+  const [newGoalTitle, setNewGoalTitle] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchGoals = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/goals");
+      if (response.ok) {
+        const data: Goal[] = await response.json();
+        
+        // Simulação do cálculo de progresso (a API deveria retornar GoalWithProgress)
+        // Por enquanto, vamos carregar o progresso do dia separadamente, para simplificar o frontend.
+        const progressResponse = await fetch(`/api/goals/progress?date=${getTodayDateString()}`);
+        const todayProgress: GoalProgress[] = progressResponse.ok ? await progressResponse.json() : [];
+
+        const goalsWithProgress: GoalWithProgress[] = data.map(goal => ({
+            ...goal,
+            progressToday: todayProgress.some(p => p.goal_id === goal.id),
+            progressCount: 0, // Ignorando por enquanto até que a API de progresso seja implementada
+        }));
+
+        setGoals(goalsWithProgress.filter(g => g.is_active));
+      }
+    } catch (error) {
+      console.error("Erro ao buscar metas:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchGoals();
+  }, [fetchGoals]);
+
+  // --- Funções de Ação ---
+
+  const handleAddGoal = async () => {
+    if (!newGoalTitle.trim() || !user) return;
+    
+    // Simplificando os campos para o MVP:
+    const newGoalData = {
+      title: newGoalTitle.trim(),
+      description: null,
+      icon: "✨", // Ícone padrão
+      target_frequency: 7, // Frequência padrão semanal
+    };
+
+    try {
+      const response = await fetch("/api/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newGoalData),
+      });
+
+      if (response.ok) {
+        const addedGoal = await response.json();
+        setGoals(prev => [...prev, { ...addedGoal, progressToday: false, progressCount: 0 }]);
+        setNewGoalTitle("");
+      } else {
+        alert("Falha ao adicionar meta.");
+      }
+    } catch (error) {
+      console.error("Erro ao adicionar meta:", error);
+    }
+  };
+
+  const handleToggleProgress = async (goalId: number, isDone: boolean) => {
+    try {
+      const today = getTodayDateString();
+      const method = isDone ? "DELETE" : "POST";
+      const endpoint = isDone ? `/api/goals/${goalId}/progress?date=${today}` : `/api/goals/${goalId}/progress`;
+
+      const response = await fetch(endpoint, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: method === "POST" ? JSON.stringify({ completed_date: today }) : undefined,
+      });
+
+      if (response.ok) {
+        setGoals(prev => 
+          prev.map(goal => 
+            goal.id === goalId ? { ...goal, progressToday: !isDone } : goal
+          )
+        );
+      } else {
+        alert(`Falha ao ${isDone ? 'remover' : 'adicionar'} progresso.`);
+      }
+    } catch (error) {
+      console.error("Erro ao alternar progresso:", error);
+    }
+  };
+
+  const handleDeleteGoal = async (goalId: number) => {
+    if (!confirm("Tem certeza que deseja deletar esta meta?")) return;
+    try {
+      const response = await fetch(`/api/goals/${goalId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setGoals(prev => prev.filter(goal => goal.id !== goalId));
+      } else {
+        alert("Falha ao deletar meta.");
+      }
+    } catch (error) {
+      console.error("Erro ao deletar meta:", error);
+    }
+  };
+
+  // --- Renderização ---
+
+  const goalsCount = goals.length;
+  const completedTodayCount = goals.filter(g => g.progressToday).length;
+
+  return (
+    <Layout>
+      <header className="mb-8">
+        <h1 className="text-4xl font-extrabold text-gray-900 flex items-center gap-3">
+          <TrendingUp className="w-8 h-8 text-pink-600" /> Minhas Metas
+        </h1>
+        <p className="text-gray-600 mt-1">Defina objetivos de bem-estar de longo prazo. O seu futuro floresce hoje!</p>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Metas Ativas</h3>
+          <p className="text-3xl font-bold text-purple-600">{goalsCount}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Concluídas Hoje</h3>
+          <p className="text-3xl font-bold text-green-500">{completedTodayCount}/{goalsCount}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Maior Frequência</h3>
+          <p className="text-3xl font-bold text-pink-600">7 Dias</p>
+          <p className="text-xs text-gray-500 mt-1">Foco na consistência.</p>
+        </div>
+      </div>
+      
+      <section className="bg-white rounded-2xl p-6 shadow-lg">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-800">Adicionar Nova Meta</h2>
+        <div className="flex gap-4">
+          <input
+            type="text"
+            className="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            placeholder="Ex: Ler 10 páginas por dia"
+            value={newGoalTitle}
+            onChange={(e) => setNewGoalTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddGoal();
+            }}
+            disabled={isLoading}
+          />
+          <button
+            onClick={handleAddGoal}
+            className="bg-purple-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-purple-700 transition-colors duration-200 flex items-center gap-2 disabled:opacity-50"
+            disabled={isLoading || !newGoalTitle.trim()}
+          >
+            <Plus className="w-5 h-5" /> Adicionar
+          </button>
+        </div>
+      </section>
+
+      <section className="mt-8 bg-white rounded-2xl p-6 shadow-lg">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-800">Lista de Metas</h2>
+        {isLoading ? (
+          <p className="text-gray-500 text-center py-8">Carregando metas...</p>
+        ) : goalsCount === 0 ? (
+          <p className="text-gray-500 text-center py-8">Você ainda não tem metas. Adicione uma para começar!</p>
+        ) : (
+          <ul className="space-y-4">
+            {goals.map((goal) => (
+              <li 
+                key={goal.id} 
+                className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${
+                  goal.progressToday 
+                    ? "bg-green-50 border-green-200" 
+                    : "bg-gray-50 border-gray-200 hover:shadow-md"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <span className="text-2xl">{goal.icon}</span>
+                  <div>
+                    <p className={`font-semibold text-lg ${goal.progressToday ? "text-green-700 line-through" : "text-gray-800"}`}>
+                      {goal.title}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {goal.target_frequency} vezes por semana | Progresso: 0/{goal.target_frequency}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleToggleProgress(goal.id, goal.progressToday)}
+                    className={`p-2 rounded-full transition-colors duration-200 ${
+                      goal.progressToday 
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : "bg-purple-100 text-purple-600 hover:bg-purple-200"
+                    }`}
+                    title={goal.progressToday ? "Desmarcar Conclusão" : "Marcar como Concluída Hoje"}
+                  >
+                    {goal.progressToday ? <X className="w-5 h-5" /> : <Check className="w-5 h-5" />}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteGoal(goal.id)}
+                    className="p-2 text-red-500 hover:bg-red-100 rounded-full transition-colors duration-200"
+                    title="Deletar Meta"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </Layout>
+  );
+}

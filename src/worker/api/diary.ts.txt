@@ -1,0 +1,137 @@
+import { Hono } from "hono";
+import { z } from "zod";
+import { validator } from "@hono/zod-validator";
+import { Env } from "@/worker/index";
+import { DiaryEntry } from "@/shared/types";
+
+const diary = new Hono<{ Bindings: Env }>();
+
+// Retorna a data de hoje no formato YYYY-MM-DD
+function getTodayDateString(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+// Schema de validação para a criação/atualização de uma entrada de diário
+const DiaryEntrySchema = z.object({
+  content: z.string().min(1, "O conteúdo do diário é obrigatório."),
+  mood: z.string().nullable().optional(), // Ex: "feliz", "triste", "calmo"
+});
+
+// GET /api/diary?date=YYYY-MM-DD
+// Busca a entrada do diário para uma data específica (ou hoje, por padrão)
+diary.get("/", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const entryDate = c.req.query("date") || getTodayDateString();
+
+  try {
+    const entry = await db
+      .prepare(
+        "SELECT * FROM diary_entries WHERE user_id = ?1 AND entry_date = ?2"
+      )
+      .bind(user.id, entryDate)
+      .first<DiaryEntry>();
+
+    if (!entry) {
+      return c.json(null); // Retorna null se não houver entrada para a data
+    }
+
+    return c.json(entry);
+  } catch (error) {
+    console.error("Error fetching diary entry:", error);
+    return c.json({ error: "Falha ao buscar entrada do diário." }, 500);
+  }
+});
+
+// POST /api/diary
+// Cria ou atualiza a entrada do diário para a data de hoje
+diary.post("/", validator("json", DiaryEntrySchema), async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const data = c.req.valid("json");
+  const today = getTodayDateString();
+
+  try {
+    // 1. Tenta encontrar uma entrada existente para hoje
+    const existingEntry = await db
+      .prepare(
+        "SELECT id FROM diary_entries WHERE user_id = ?1 AND entry_date = ?2"
+      )
+      .bind(user.id, today)
+      .first();
+
+    let result;
+
+    if (existingEntry) {
+      // 2. Se existe, atualiza
+      const statement = db
+        .prepare(
+          "UPDATE diary_entries SET content = ?1, mood = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?3 RETURNING *"
+        )
+        .bind(data.content, data.mood || null, existingEntry.id);
+      result = await statement.run();
+    } else {
+      // 3. Se não existe, insere
+      const statement = db
+        .prepare(
+          "INSERT INTO diary_entries (user_id, content, entry_date, mood) VALUES (?1, ?2, ?3, ?4) RETURNING *"
+        )
+        .bind(user.id, data.content, today, data.mood || null);
+      result = await statement.run();
+    }
+
+    const savedEntry = result.results?.[0] as DiaryEntry;
+
+    return c.json(savedEntry, existingEntry ? 200 : 201);
+  } catch (error) {
+    console.error("Error saving diary entry:", error);
+    return c.json({ error: "Falha ao salvar entrada do diário." }, 500);
+  }
+});
+
+// DELETE /api/diary?date=YYYY-MM-DD
+// Deleta a entrada do diário para uma data específica (ou hoje, por padrão)
+diary.delete("/", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const entryDate = c.req.query("date") || getTodayDateString();
+
+  try {
+    const statement = db
+      .prepare("DELETE FROM diary_entries WHERE user_id = ?1 AND entry_date = ?2")
+      .bind(user.id, entryDate);
+
+    await statement.run();
+
+    return c.json({ message: `Entrada do diário de ${entryDate} deletada com sucesso.` });
+  } catch (error) {
+    console.error("Error deleting diary entry:", error);
+    return c.json({ error: "Falha ao deletar entrada do diário." }, 500);
+  }
+});
+
+
+// GET /api/diary/history
+// Retorna a lista de datas em que o usuário fez entradas no diário (para o calendário)
+diary.get("/history", async (c) => {
+    const { user } = c.get("variables");
+    const db = c.env.DB;
+
+    try {
+        const { results } = await db
+          .prepare(
+            "SELECT entry_date FROM diary_entries WHERE user_id = ?1 ORDER BY entry_date DESC"
+          )
+          .bind(user.id)
+          .all<{ entry_date: string }>();
+
+        const dates = results.map(r => r.entry_date);
+        return c.json(dates);
+    } catch (error) {
+        console.error("Error fetching diary history:", error);
+        return c.json({ error: "Falha ao buscar histórico do diário." }, 500);
+    }
+});
+
+
+export default diary;

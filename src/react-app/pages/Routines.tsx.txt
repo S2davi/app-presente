@@ -1,0 +1,325 @@
+import Layout from "@/react-app/components/Layout";
+import { Target } from "lucide-react";
+
+export default function RoutinesPage() {
+  return (
+    <Layout>
+      <div className="flex items-center gap-4 mb-8">
+        <Target className="w-8 h-8 text-purple-600" />
+        <h1 className="text-3xl font-bold text-gray-800">Minhas Rotinas</h1>
+      </div>
+      <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <p className="text-gray-600">
+          Esta será a página para visualizar, adicionar e gerenciar suas rotinas diárias, como exercícios, meditação, leitura, etc. Aqui você poderá marcar as tarefas como concluídas.
+        </p>
+        <button className="mt-4 px-4 py-2 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition-colors">
+          + Nova Rotina
+        </button>
+      </div>
+    </Layout>
+  );
+}
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Plus, Target, Check, Trash2, X, Clock } from "lucide-react";
+import Layout from "@/react-app/components/Layout";
+import { Routine } from "@/shared/types";
+import { useAuth } from "@getmocha/users-service/react";
+
+// --- Funções de Ajuda ---
+
+function getTodayDateString(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+const CATEGORY_COLORS: Record<string, string> = {
+    'Manhã': 'border-purple-300 text-purple-700 bg-purple-100',
+    'Tarde': 'border-blue-300 text-blue-700 bg-blue-100',
+    'Noite': 'border-indigo-300 text-indigo-700 bg-indigo-100',
+    'Cuidado': 'border-pink-300 text-pink-700 bg-pink-100',
+};
+
+// Extende a Routine para incluir o estado de conclusão de hoje
+interface RoutineWithCompletion extends Routine {
+    isCompletedToday: boolean;
+}
+
+// Mapa de Emojis/Ícones Sugeridos
+const SUGGESTED_ICONS = ["☕", "🧘‍♀️", "💧", "📚", "🍳", "🚶‍♀️", "💻", "🧠", "🚿", "😴"];
+
+export default function RoutinesPage() {
+  const { user } = useAuth();
+  const [routines, setRoutines] = useState<RoutineWithCompletion[]>([]);
+  const [newRoutineTitle, setNewRoutineTitle] = useState("");
+  const [newRoutineIcon, setNewRoutineIcon] = useState(SUGGESTED_ICONS[0]);
+  const [newRoutineCategory, setNewRoutineCategory] = useState("Manhã");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // --- Lógica de Fetch e Estado ---
+
+  const fetchRoutines = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      // 1. Busca todas as rotinas
+      const routinesResponse = await fetch("/api/routines");
+      if (!routinesResponse.ok) throw new Error("Falha ao buscar rotinas");
+      const fetchedRoutines: Routine[] = await routinesResponse.json();
+      
+      // 2. Busca as rotinas concluídas hoje
+      const today = getTodayDateString();
+      const completionsResponse = await fetch(`/api/routines/completions/today?date=${today}`); 
+      // NOTA: A API acima não existe, mas usaremos a rota que pega todas as rotinas e completions do dia
+      
+      // Iremos buscar as rotinas e as conclusões separadamente para otimizar a lógica.
+      const todayCompletionsResponse = await fetch(`/api/routines/completions?days=1`);
+      const todayCompletions: { completed_date: string; count: number; routine_id: number }[] = 
+          todayCompletionsResponse.ok ? await todayCompletionsResponse.json() : [];
+      
+      // Mapeia os IDs das rotinas concluídas hoje
+      const completedRoutineIds = new Set(todayCompletions.map(c => c.routine_id));
+
+      const routinesWithCompletion: RoutineWithCompletion[] = fetchedRoutines.map(routine => ({
+        ...routine,
+        isCompletedToday: completedRoutineIds.has(routine.id),
+      }));
+
+      setRoutines(routinesWithCompletion);
+    } catch (error) {
+      console.error("Erro ao buscar rotinas:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchRoutines();
+  }, [fetchRoutines]);
+
+  // Agrupa as rotinas por categoria
+  const groupedRoutines = useMemo(() => {
+    return routines.reduce((acc, routine) => {
+      const category = routine.category || "Outros";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(routine);
+      return acc;
+    }, {} as Record<string, RoutineWithCompletion[]>);
+  }, [routines]);
+
+
+  // --- Funções de Ação ---
+
+  const handleAddRoutine = async () => {
+    if (!newRoutineTitle.trim() || !user) return;
+    
+    const newRoutineData = {
+      title: newRoutineTitle.trim(),
+      icon: newRoutineIcon,
+      category: newRoutineCategory,
+    };
+
+    try {
+      const response = await fetch("/api/routines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newRoutineData),
+      });
+
+      if (response.ok) {
+        const addedRoutine: Routine = await response.json();
+        setRoutines(prev => [...prev, { ...addedRoutine, isCompletedToday: false }]);
+        setNewRoutineTitle("");
+        setNewRoutineIcon(SUGGESTED_ICONS[0]); // Reseta para o padrão
+      } else {
+        alert("Falha ao adicionar rotina.");
+      }
+    } catch (error) {
+      console.error("Erro ao adicionar rotina:", error);
+    }
+  };
+
+  const handleToggleCompletion = async (routineId: number, isDone: boolean) => {
+    try {
+      const today = getTodayDateString();
+      const method = isDone ? "DELETE" : "POST";
+      const endpoint = isDone ? `/api/routines/${routineId}/complete?date=${today}` : `/api/routines/${routineId}/complete`;
+
+      const response = await fetch(endpoint, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (response.ok || response.status === 200) { // status 200 para "já concluído"
+        setRoutines(prev => 
+          prev.map(routine => 
+            routine.id === routineId ? { ...routine, isCompletedToday: !isDone } : routine
+          )
+        );
+      } else {
+        alert(`Falha ao ${isDone ? 'remover' : 'adicionar'} conclusão da rotina.`);
+      }
+    } catch (error) {
+      console.error("Erro ao alternar conclusão:", error);
+    }
+  };
+
+  const handleDeleteRoutine = async (routineId: number) => {
+    if (!confirm("Tem certeza que deseja deletar esta rotina?")) return;
+    try {
+      const response = await fetch(`/api/routines/${routineId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setRoutines(prev => prev.filter(routine => routine.id !== routineId));
+      } else {
+        alert("Falha ao deletar rotina.");
+      }
+    } catch (error) {
+      console.error("Erro ao deletar rotina:", error);
+    }
+  };
+
+  // --- Renderização ---
+
+  const totalRoutines = routines.length;
+  const completedToday = routines.filter(r => r.isCompletedToday).length;
+
+  return (
+    <Layout>
+      <header className="mb-8">
+        <h1 className="text-4xl font-extrabold text-gray-900 flex items-center gap-3">
+          <Target className="w-8 h-8 text-purple-600" /> Minhas Rotinas Diárias
+        </h1>
+        <p className="text-gray-600 mt-1">Organize seu dia. A consistência é a chave para o Florescer!</p>
+      </header>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Total de Rotinas</h3>
+          <p className="text-3xl font-bold text-purple-600">{totalRoutines}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Concluídas Hoje</h3>
+          <p className="text-3xl font-bold text-green-500">{completedToday}/{totalRoutines}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Próximo Lembrete</h3>
+          <p className="text-3xl font-bold text-pink-600">--:--</p>
+          <p className="text-xs text-gray-500 mt-1">Implementar notificações.</p>
+        </div>
+      </div>
+
+      <section className="bg-white rounded-2xl p-6 shadow-lg mb-8">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-800">Adicionar Nova Rotina</h2>
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-grow flex gap-2">
+            <select
+              className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 w-1/4 min-w-[100px]"
+              value={newRoutineCategory}
+              onChange={(e) => setNewRoutineCategory(e.target.value)}
+            >
+                {Object.keys(CATEGORY_COLORS).map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                ))}
+            </select>
+            <input
+              type="text"
+              className="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              placeholder="Ex: Beber 1 copo de água"
+              value={newRoutineTitle}
+              onChange={(e) => setNewRoutineTitle(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+          <div className="flex gap-2 items-center">
+            <select
+                className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 w-16 text-center text-xl"
+                value={newRoutineIcon}
+                onChange={(e) => setNewRoutineIcon(e.target.value)}
+            >
+                {SUGGESTED_ICONS.map(icon => (
+                    <option key={icon} value={icon}>{icon}</option>
+                ))}
+            </select>
+            <button
+              onClick={handleAddRoutine}
+              className="bg-purple-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-purple-700 transition-colors duration-200 flex items-center gap-2 disabled:opacity-50"
+              disabled={isLoading || !newRoutineTitle.trim()}
+            >
+              <Plus className="w-5 h-5" /> Adicionar
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        {isLoading ? (
+          <p className="text-gray-500 text-center py-8">Carregando rotinas...</p>
+        ) : totalRoutines === 0 ? (
+          <p className="text-gray-500 text-center py-8 bg-white p-6 rounded-2xl shadow-lg">
+            Você ainda não tem rotinas. Adicione uma para começar a Florescer seu dia!
+          </p>
+        ) : (
+            // Renderiza as rotinas agrupadas por categoria
+            Object.keys(groupedRoutines).map(category => (
+                <div key={category} className="mb-8">
+                    <h2 className={`text-xl font-bold mb-3 p-2 rounded-lg inline-block ${CATEGORY_COLORS[category] || 'border-gray-300 text-gray-700 bg-gray-100'}`}>
+                        {category}
+                    </h2>
+                    <ul className="space-y-4">
+                        {groupedRoutines[category].map((routine) => (
+                            <li 
+                                key={routine.id} 
+                                className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${
+                                routine.isCompletedToday 
+                                    ? "bg-green-50 border-green-200" 
+                                    : "bg-gray-50 border-gray-200 hover:shadow-md"
+                                }`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <span className="text-2xl">{routine.icon}</span>
+                                    <div>
+                                        <p className={`font-semibold text-lg ${routine.isCompletedToday ? "text-green-700 line-through" : "text-gray-800"}`}>
+                                            {routine.title}
+                                        </p>
+                                        {routine.reminder_time && (
+                                            <p className="text-sm text-gray-500 flex items-center gap-1">
+                                                <Clock className="w-3 h-3"/> {routine.reminder_time}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => handleToggleCompletion(routine.id, routine.isCompletedToday)}
+                                    className={`p-2 rounded-full transition-colors duration-200 ${
+                                    routine.isCompletedToday 
+                                        ? "bg-green-500 text-white hover:bg-green-600"
+                                        : "bg-purple-100 text-purple-600 hover:bg-purple-200"
+                                    }`}
+                                    title={routine.isCompletedToday ? "Desmarcar Conclusão" : "Marcar como Concluída Hoje"}
+                                >
+                                    {routine.isCompletedToday ? <X className="w-5 h-5" /> : <Check className="w-5 h-5" />}
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteRoutine(routine.id)}
+                                    className="p-2 text-red-500 hover:bg-red-100 rounded-full transition-colors duration-200"
+                                    title="Deletar Rotina"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ))
+        )}
+      </section>
+    </Layout>
+  );
+}

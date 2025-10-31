@@ -1,0 +1,26 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router";
+import { useAuth } from "@getmocha/users-service/react";
+
+// Página de callback após a autenticação
+export default function AuthCallbackPage() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    // Se a autenticação for bem-sucedida, navega para a página inicial
+    if (isAuthenticated) {
+      // Usar replace para evitar que o usuário volte para a página de callback
+      navigate("/", { replace: true }); 
+    }
+  }, [isAuthenticated, navigate]);
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="p-8 text-center bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+        <p className="text-xl font-medium text-gray-700 dark:text-gray-300">Finalizando o login...</p>
+        <p className="mt-2 text-gray-500 dark:text-gray-400">Aguarde, estamos a carregar o seu perfil.</p>
+      </div>
+    </div>
+  );
+}

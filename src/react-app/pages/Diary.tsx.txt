@@ -1,0 +1,309 @@
+import Layout from "@/react-app/components/Layout";
+import { BookHeart } from "lucide-react";
+
+export default function DiaryPage() {
+  return (
+    <Layout>
+      <div className="flex items-center gap-4 mb-8">
+        <BookHeart className="w-8 h-8 text-blue-600" />
+        <h1 className="text-3xl font-bold text-gray-800">Diário Pessoal</h1>
+      </div>
+      <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <p className="text-gray-600">
+          Use esta página para escrever entradas diárias, registrar seu humor e pensamentos, promovendo o bem-estar mental e autocuidado.
+        </p>
+        <button className="mt-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors">
+          + Nova Entrada
+        </button>
+      </div>
+    </Layout>
+  );
+}
+
+import { useState, useEffect, useCallback } from "react";
+import { BookHeart, Save, Trash2, Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
+import Layout from "@/react-app/components/Layout";
+import { DiaryEntry } from "@/shared/types"; // Lembre-se de adicionar DiaryEntry em shared/types.ts
+
+// --- Funções de Ajuda ---
+
+function dateToISO(date: Date): string {
+    return date.toISOString().split("T")[0];
+}
+
+function ISOToDisplay(isoDate: string): string {
+    return new Date(isoDate).toLocaleDateString("pt-BR", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+}
+
+const MOOD_EMOJIS: Record<string, string> = {
+    'Excelente': '😊',
+    'Bom': '🙂',
+    'Neutro': '😐',
+    'Ruim': '😟',
+    'Péssimo': '😢',
+};
+
+export default function DiaryPage() {
+    const [selectedDate, setSelectedDate] = useState(dateToISO(new Date()));
+    const [entry, setEntry] = useState<DiaryEntry | null>(null);
+    const [content, setContent] = useState("");
+    const [mood, setMood] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSaving, setIsSaving] = setIsSaving(false);
+    const [history, setHistory] = useState<string[]>([]); // Datas com entradas
+
+    // --- Lógica de Fetch ---
+
+    const fetchEntry = useCallback(async (date: string) => {
+        setIsLoading(true);
+        try {
+            const response = await fetch(`/api/diary?date=${date}`);
+            if (response.ok) {
+                const data: DiaryEntry | null = await response.json();
+                setEntry(data);
+                setContent(data ? data.content : "");
+                setMood(data ? data.mood : null);
+            }
+        } catch (error) {
+            console.error("Erro ao buscar entrada:", error);
+            setEntry(null);
+            setContent("");
+            setMood(null);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const fetchHistory = useCallback(async () => {
+        try {
+            const response = await fetch("/api/diary/history");
+            if (response.ok) {
+                const dates: string[] = await response.json();
+                setHistory(dates);
+            }
+        } catch (error) {
+            console.error("Erro ao buscar histórico:", error);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchEntry(selectedDate);
+        fetchHistory();
+    }, [selectedDate, fetchEntry, fetchHistory]);
+
+    // --- Funções de Ação ---
+
+    const handleSave = async () => {
+        if (!content.trim()) return;
+        setIsSaving(true);
+        try {
+            const response = await fetch("/api/diary", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content, mood }),
+            });
+
+            if (response.ok) {
+                const savedEntry: DiaryEntry = await response.json();
+                setEntry(savedEntry);
+                // Adiciona a data ao histórico se for uma nova entrada
+                if (!history.includes(selectedDate)) {
+                    setHistory(prev => [selectedDate, ...prev].sort().reverse());
+                }
+                alert("Diário salvo com sucesso!");
+            } else {
+                alert("Falha ao salvar diário.");
+            }
+        } catch (error) {
+            console.error("Erro ao salvar entrada:", error);
+            alert("Erro ao salvar entrada do diário.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!entry || !confirm(`Tem certeza que deseja deletar a entrada do dia ${ISOToDisplay(selectedDate)}?`)) return;
+
+        setIsSaving(true);
+        try {
+            const response = await fetch(`/api/diary?date=${selectedDate}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                setEntry(null);
+                setContent("");
+                setMood(null);
+                setHistory(prev => prev.filter(d => d !== selectedDate));
+                alert("Entrada deletada com sucesso.");
+            } else {
+                alert("Falha ao deletar entrada.");
+            }
+        } catch (error) {
+            console.error("Erro ao deletar entrada:", error);
+            alert("Erro ao deletar entrada do diário.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+    
+    // --- Navegação de Data ---
+
+    const changeDay = (offset: number) => {
+        const currentDate = new Date(selectedDate);
+        currentDate.setDate(currentDate.getDate() + offset);
+        setSelectedDate(dateToISO(currentDate));
+    };
+
+    const isToday = selectedDate === dateToISO(new Date());
+
+    return (
+        <Layout>
+            <header className="mb-8 flex justify-between items-center">
+                <h1 className="text-4xl font-extrabold text-gray-900 flex items-center gap-3">
+                    <BookHeart className="w-8 h-8 text-pink-600" /> Meu Diário
+                </h1>
+                <div className="md:hidden">
+                    <button onClick={handleSave} disabled={!content.trim() || isSaving} className="bg-pink-600 text-white p-3 rounded-full shadow-lg hover:bg-pink-700 transition-colors disabled:opacity-50">
+                        <Save className="w-5 h-5" />
+                    </button>
+                </div>
+            </header>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                
+                {/* Coluna Principal: Editor de Diário */}
+                <div className="lg:col-span-3 bg-white rounded-2xl p-6 shadow-xl">
+                    
+                    {/* Navegação de Data */}
+                    <div className="flex justify-between items-center mb-6 border-b pb-4">
+                        <button 
+                            onClick={() => changeDay(-1)} 
+                            className="text-gray-600 hover:text-pink-600 p-2 rounded-full transition-colors"
+                            title="Dia Anterior"
+                        >
+                            <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-purple-500" /> 
+                            {ISOToDisplay(selectedDate)}
+                            {isToday && <span className="text-sm font-medium text-pink-600 bg-pink-100 px-3 py-1 rounded-full">HOJE</span>}
+                        </h2>
+                        <button 
+                            onClick={() => changeDay(1)} 
+                            disabled={isToday}
+                            className={`text-gray-600 p-2 rounded-full transition-colors ${isToday ? 'opacity-50 cursor-not-allowed' : 'hover:text-pink-600'}`}
+                            title="Próximo Dia (desativado para o futuro)"
+                        >
+                            <ChevronRight className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    {isLoading ? (
+                        <div className="h-64 flex items-center justify-center text-gray-500">
+                            Carregando entrada...
+                        </div>
+                    ) : (
+                        <>
+                            {/* Seleção de Humor */}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold text-gray-700 mb-3">Como você se sentiu?</h3>
+                                <div className="flex flex-wrap gap-3">
+                                    {Object.entries(MOOD_EMOJIS).map(([label, emoji]) => (
+                                        <button
+                                            key={label}
+                                            onClick={() => setMood(mood === label ? null : label)}
+                                            className={`p-3 rounded-xl border-2 transition-all duration-200 flex items-center gap-2 ${
+                                                mood === label
+                                                    ? "border-pink-500 bg-pink-100 shadow-md"
+                                                    : "border-gray-200 hover:border-pink-300"
+                                            }`}
+                                        >
+                                            <span className="text-2xl">{emoji}</span>
+                                            <span className="font-medium text-gray-700">{label}</span>
+                                            {mood === label && <X className="w-4 h-4 text-pink-500" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Área de Texto */}
+                            <textarea
+                                className="w-full h-80 p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-gray-800 resize-none transition-shadow"
+                                placeholder="Escreva sobre o seu dia, seus sentimentos, pensamentos e aprendizados..."
+                                value={content}
+                                onChange={(e) => setContent(e.target.value)}
+                                disabled={isSaving || !isToday} // Só permite editar o diário de hoje
+                            />
+
+                            {/* Botões de Ação */}
+                            {isToday && (
+                                <div className="flex justify-end gap-3 mt-4">
+                                    {entry && (
+                                        <button 
+                                            onClick={handleDelete}
+                                            className="px-6 py-3 bg-red-100 text-red-600 font-semibold rounded-xl hover:bg-red-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+                                            disabled={isSaving}
+                                        >
+                                            <Trash2 className="w-5 h-5" /> Deletar
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={handleSave}
+                                        className="px-8 py-3 bg-pink-600 text-white font-semibold rounded-xl hover:bg-pink-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                                        disabled={!content.trim() || isSaving}
+                                    >
+                                        <Save className="w-5 h-5" /> {isSaving ? "Salvando..." : (entry ? "Atualizar" : "Salvar")}
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {!isToday && (
+                                <p className="text-center text-gray-500 mt-4 p-4 border border-dashed rounded-xl">
+                                    Você está visualizando uma entrada passada. Apenas entradas de hoje podem ser editadas.
+                                </p>
+                            )}
+
+                        </>
+                    )}
+                </div>
+
+                {/* Coluna Lateral: Histórico e Navegação Rápida */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl sticky top-8">
+                        <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Histórico de Entradas</h3>
+                        
+                        {history.length === 0 ? (
+                            <p className="text-gray-500 text-sm">Nenhuma entrada registrada ainda. Comece a escrever hoje!</p>
+                        ) : (
+                            <ul className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+                                {history.map(date => (
+                                    <li key={date}>
+                                        <button
+                                            onClick={() => setSelectedDate(date)}
+                                            className={`w-full text-left p-3 rounded-lg transition-all duration-200 flex justify-between items-center ${
+                                                selectedDate === date
+                                                    ? "bg-purple-100 text-purple-700 font-bold"
+                                                    : "hover:bg-gray-100 text-gray-700"
+                                            }`}
+                                        >
+                                            <span className="text-sm">{ISOToDisplay(date)}</span>
+                                            {history.includes(date) && <span className="text-lg">📖</span>}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+
+            </div>
+        </Layout>
+    );
+}

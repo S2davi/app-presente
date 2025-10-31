@@ -1,0 +1,175 @@
+import { Hono } from "hono";
+import { z } from "zod";
+import { validator } from "@hono/zod-validator";
+import { Env } from "@/worker/index";
+import { Goal, GoalProgress } from "@/shared/types"; // Importamos os tipos definidos
+
+const goals = new Hono<{ Bindings: Env }>();
+
+// Schema de validação para a criação de uma meta
+const NewGoalSchema = z.object({
+  title: z.string().min(1, "O título é obrigatório."),
+  description: z.string().nullable().optional(),
+  icon: z.string().min(1).default("✨"),
+  target_frequency: z.number().int().min(1).default(7),
+});
+
+// GET /api/goals
+// Lista todas as metas ativas do usuário
+goals.get("/", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+
+  try {
+    const { results } = await db
+      .prepare("SELECT * FROM goals WHERE user_id = ?1 AND is_active = 1 ORDER BY created_at DESC")
+      .bind(user.id)
+      .all<Goal>();
+
+    return c.json(results);
+  } catch (error) {
+    console.error("Error fetching goals:", error);
+    return c.json({ error: "Falha ao buscar metas." }, 500);
+  }
+});
+
+// POST /api/goals
+// Cria uma nova meta
+goals.post("/", validator("json", NewGoalSchema), async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const data = c.req.valid("json");
+
+  try {
+    const statement = db
+      .prepare(
+        "INSERT INTO goals (user_id, title, description, icon, target_frequency) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING *"
+      )
+      .bind(
+        user.id,
+        data.title,
+        data.description || null,
+        data.icon,
+        data.target_frequency
+      );
+
+    const result = await statement.run();
+    // No D1, a instrução RETURNING * retorna um result.results com o objeto inserido
+    const createdGoal = result.results?.[0] as Goal; 
+
+    return c.json(createdGoal, 201);
+  } catch (error) {
+    console.error("Error creating goal:", error);
+    return c.json({ error: "Falha ao criar meta." }, 500);
+  }
+});
+
+// DELETE /api/goals/:id
+// Deleta uma meta (ou, mais seguro, marca como inativa)
+goals.delete("/:id", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const id = c.req.param("id");
+
+  try {
+    // Usaremos UPDATE para is_active = 0 para manter o histórico (Soft Delete)
+    const statement = db
+      .prepare("UPDATE goals SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?1 AND user_id = ?2")
+      .bind(id, user.id);
+
+    const result = await statement.run();
+
+    if (result.changes === 0) {
+      return c.json({ error: "Meta não encontrada ou não pertence ao usuário." }, 404);
+    }
+
+    return c.json({ message: "Meta deletada com sucesso (marcada como inativa)." });
+  } catch (error) {
+    console.error("Error deleting goal:", error);
+    return c.json({ error: "Falha ao deletar meta." }, 500);
+  }
+});
+
+// --- Rotas de Progresso de Meta (goal_progress) ---
+
+// GET /api/goals/progress?date=YYYY-MM-DD
+// Lista o progresso do dia para o usuário (quais metas foram completadas)
+goals.get("/progress", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const date = c.req.query("date") || new Date().toISOString().split('T')[0];
+
+  try {
+    const { results } = await db
+      .prepare("SELECT * FROM goal_progress WHERE user_id = ?1 AND completed_date = ?2")
+      .bind(user.id, date)
+      .all<GoalProgress>();
+
+    return c.json(results);
+  } catch (error) {
+    console.error("Error fetching goal progress:", error);
+    return c.json({ error: "Falha ao buscar progresso das metas." }, 500);
+  }
+});
+
+// POST /api/goals/:id/progress
+// Marca uma meta como concluída no dia
+goals.post("/:id/progress", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const goalId = c.req.param("id");
+  const { completed_date } = await c.req.json() as { completed_date: string };
+  
+  // Verifica se o progresso já existe para evitar duplicatas (chave: user_id, goal_id, completed_date)
+  const existingProgress = await db
+    .prepare("SELECT id FROM goal_progress WHERE user_id = ?1 AND goal_id = ?2 AND completed_date = ?3")
+    .bind(user.id, goalId, completed_date)
+    .first();
+
+  if (existingProgress) {
+    return c.json({ message: "Progresso já registrado para esta meta e data." }, 200);
+  }
+
+  try {
+    const statement = db
+      .prepare(
+        "INSERT INTO goal_progress (user_id, goal_id, completed_date) VALUES (?1, ?2, ?3) RETURNING *"
+      )
+      .bind(user.id, goalId, completed_date);
+
+    const result = await statement.run();
+    const createdProgress = result.results?.[0] as GoalProgress;
+
+    return c.json(createdProgress, 201);
+  } catch (error) {
+    console.error("Error creating goal progress:", error);
+    return c.json({ error: "Falha ao registrar progresso." }, 500);
+  }
+});
+
+// DELETE /api/goals/:id/progress?date=YYYY-MM-DD
+// Remove a conclusão de uma meta de um dia específico
+goals.delete("/:id/progress", async (c) => {
+    const { user } = c.get("variables");
+    const db = c.env.DB;
+    const goalId = c.req.param("id");
+    const date = c.req.query("date") || new Date().toISOString().split('T')[0];
+
+    try {
+        const statement = db
+            .prepare("DELETE FROM goal_progress WHERE user_id = ?1 AND goal_id = ?2 AND completed_date = ?3")
+            .bind(user.id, goalId, date);
+
+        await statement.run();
+
+        return c.json({ message: "Progresso removido com sucesso." });
+    } catch (error) {
+        console.error("Error deleting goal progress:", error);
+        return c.json({ error: "Falha ao remover progresso." }, 500);
+    }
+});
+
+export default goals;
+
+// Lembre-se de adicionar 'goals' ao seu router principal em src/worker/index.ts
+// Ex: app.route("/api/goals", goals);

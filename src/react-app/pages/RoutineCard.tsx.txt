@@ -1,0 +1,54 @@
+import { Target, Check, RefreshCw } from "lucide-react";
+import { Routine } from "@/shared/types";
+
+interface RoutineCardProps {
+  routine: Routine;
+  onComplete: (routineId: number) => void;
+  isCompleted: boolean;
+  isLoading: boolean;
+}
+
+export default function RoutineCard({ routine, onComplete, isCompleted, isLoading }: RoutineCardProps) {
+  const Icon = Target; 
+  
+  const handleToggleCompletion = () => {
+    if (!isLoading) {
+      onComplete(routine.id);
+    }
+  };
+
+  return (
+    <div 
+      className={`p-4 rounded-xl border-2 transition-all duration-300 flex items-center justify-between ${
+        isCompleted
+          ? "border-green-400 bg-green-50 shadow-md"
+          : "border-purple-200 bg-white hover:border-purple-400 hover:shadow-lg"
+      }`}
+    >
+      <div className="flex items-center gap-4">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-500 text-white' : 'bg-purple-100 text-purple-600'}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 line-clamp-1">{routine.title}</h3>
+          {routine.reminder_time && (
+             <p className="text-sm text-gray-500">{routine.reminder_time} • {routine.category}</p>
+          )}
+        </div>
+      </div>
+      
+      <button
+        onClick={handleToggleCompletion}
+        disabled={isLoading}
+        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+          isCompleted
+            ? "bg-green-500 text-white hover:bg-green-600"
+            : "bg-purple-500 text-white hover:bg-purple-600"
+        } disabled:opacity-50`}
+        title={isCompleted ? "Desmarcar como concluído" : "Marcar como concluído"}
+      >
+        {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : isCompleted ? <Check className="w-5 h-5" /> : <Check className="w-5 h-5" />}
+      </button>
+    </div>
+  );
+}

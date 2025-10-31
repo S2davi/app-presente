@@ -1,0 +1,286 @@
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@getmocha/users-service/react";
+import { Smile, Target, TrendingUp, Zap, BookHeart, RefreshCw } from "lucide-react";
+import Layout from "@/react-app/components/Layout";
+import StatCard from "@/react-app/components/StatCard"; // Componente existente
+import ProgressChart from "@/react-app/components/ProgressChart"; // Componente existente
+import RoutineCard from "@/react-app/components/RoutineCard"; // NOVO
+import GoalCard from "@/react-app/components/GoalCard"; // NOVO
+import { Routine, Goal, DiaryEntry } from "@/shared/types";
+import { useNavigate } from "react-router-dom"; // Importar para navegação rápida
+
+// Dados de Mensagens Motivacionais
+const MESSAGES = [
+  "Você é capaz de coisas incríveis. Acredite em si!",
+  "Pequenos passos todos os dias levam a grandes resultados.",
+  "Cuide de si, você merece este tempo. 💖",
+  "A consistência é a chave. Continue firme!",
+  "Lembre-se: é um dia de cada vez. Você está indo bem.",
+  "O autocuidado não é egoísmo, é essencial.",
+];
+
+interface HomeData {
+  todayRoutines: (Routine & { is_completed_today: boolean })[];
+  activeGoals: (Goal & { is_completed_today: boolean })[];
+  routineCompletionsToday: number;
+  totalActiveRoutines: number;
+  goalCompletionsToday: number;
+  totalActiveGoals: number;
+  diaryEntryToday: DiaryEntry | null;
+}
+
+const MOOD_EMOJIS: Record<string, string> = {
+  'Excelente': '😊',
+  'Bom': '🙂',
+  'Neutro': '😐',
+  'Ruim': '😟',
+  'Péssimo': '😢',
+};
+
+
+export default function HomePage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [data, setData] = useState<HomeData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [messageIndex, setMessageIndex] = useState(
+    () => Math.floor(Math.random() * MESSAGES.length) // Mensagem aleatória ao carregar
+  );
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [completedRoutineIds, setCompletedRoutineIds] = useState<number[]>([]);
+  const [completedGoalIds, setCompletedGoalIds] = useState<number[]>([]);
+
+  const fetchHomeData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // ⚠️ Chama a nova rota única do Dashboard
+      const response = await fetch("/api/home/data"); 
+      if (response.ok) {
+        const homeData: HomeData = await response.json();
+        setData(homeData);
+        
+        // Inicializa o estado de conclusão com os dados do backend
+        setCompletedRoutineIds(homeData.todayRoutines.filter(r => r.is_completed_today).map(r => r.id));
+        setCompletedGoalIds(homeData.activeGoals.filter(g => g.is_completed_today).map(g => g.id));
+
+      } else {
+        console.error("Failed to fetch home data");
+        setData(null);
+      }
+    } catch (error) {
+      console.error("Error fetching home data:", error);
+      setData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHomeData();
+  }, [fetchHomeData]);
+
+  const handleNextMessage = () => {
+    setMessageIndex((prevIndex) => (prevIndex + 1) % MESSAGES.length);
+  };
+
+  const handleRoutineToggle = async (routineId: number) => {
+    setIsProcessing(true);
+    const isCompleted = completedRoutineIds.includes(routineId);
+    
+    try {
+      // Endpoints existentes: /api/routines/complete (POST) e /api/routines/completion/:id (DELETE)
+      const endpoint = isCompleted ? `/api/routines/completion/${routineId}` : "/api/routines/complete";
+      const method = isCompleted ? "DELETE" : "POST";
+      const body = isCompleted ? null : JSON.stringify({ routine_id: routineId });
+
+      const response = await fetch(endpoint, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: body,
+      });
+
+      if (response.ok) {
+        // Atualiza o estado localmente e recarrega os dados para atualizar os contadores e o gráfico
+        setCompletedRoutineIds(prev =>
+          isCompleted ? prev.filter(id => id !== routineId) : [...prev, routineId]
+        );
+        // Pequeno delay para recarregar o gráfico e stats com o novo dado
+        setTimeout(fetchHomeData, 500); 
+      } else {
+        alert(`Falha ao ${isCompleted ? 'desmarcar' : 'marcar'} a rotina.`);
+      }
+    } catch (error) {
+      console.error(`Erro ao processar rotina:`, error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGoalToggle = async (goalId: number) => {
+    setIsProcessing(true);
+    const isCompleted = completedGoalIds.includes(goalId);
+    
+    try {
+      // Endpoints existentes: /api/goals/progress (POST) e /api/goals/progress/:id (DELETE)
+      const endpoint = isCompleted ? `/api/goals/progress/${goalId}` : "/api/goals/progress";
+      const method = isCompleted ? "DELETE" : "POST";
+      const body = isCompleted ? null : JSON.stringify({ goal_id: goalId });
+
+      const response = await fetch(endpoint, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: body,
+      });
+
+      if (response.ok) {
+        // Atualiza o estado localmente e recarrega os dados para atualizar os contadores
+        setCompletedGoalIds(prev =>
+          isCompleted ? prev.filter(id => id !== goalId) : [...prev, goalId]
+        );
+        setTimeout(fetchHomeData, 500);
+      } else {
+        alert(`Falha ao ${isCompleted ? 'desmarcar' : 'marcar'} a meta.`);
+      }
+    } catch (error) {
+      console.error(`Erro ao processar meta:`, error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <RefreshCw className="w-10 h-10 text-purple-500 animate-spin" />
+            <p className="ml-4 text-xl font-semibold text-gray-700">Carregando Dashboard...</p>
+        </div>
+      </Layout>
+    );
+  }
+  
+  const greeting = user?.name ? `Olá, ${user.name.split(' ')[0]}!` : "Bem-vindo(a)!";
+  const moodToday = data?.diaryEntryToday?.mood;
+  const moodEmoji = moodToday ? MOOD_EMOJIS[moodToday] || '✨' : '📝';
+  const moodText = moodToday ? moodToday : 'Sem registro';
+  const routineProgress = data && data.totalActiveRoutines > 0 ? (data.routineCompletionsToday / data.totalActiveRoutines) * 100 : 0;
+
+
+  return (
+    <Layout>
+      <header className="mb-8">
+        <h1 className="text-4xl font-extrabold text-gray-900">{greeting}</h1>
+        <p className="text-lg text-gray-600">Seu resumo diário de bem-estar e progresso.</p>
+      </header>
+
+      {/* Seção de Mensagem e Humor */}
+      <section className="bg-white rounded-2xl p-6 shadow-xl mb-8 flex flex-col md:flex-row items-center justify-between border-t-4 border-pink-500">
+        <div className="flex items-center gap-4">
+            <Zap className="w-6 h-6 text-pink-500" />
+            <p className="text-xl font-medium text-gray-700 italic">
+                "{MESSAGES[messageIndex]}"
+            </p>
+        </div>
+        <button 
+            onClick={handleNextMessage}
+            className="mt-4 md:mt-0 px-4 py-2 bg-pink-500 text-white font-semibold rounded-full hover:bg-pink-600 transition-colors text-sm"
+        >
+            Próxima Mensagem
+        </button>
+      </section>
+
+      {/* Cards de Estatísticas */}
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          title="Rotinas de Hoje"
+          value={`${data?.routineCompletionsToday}/${data?.totalActiveRoutines}`}
+          progress={routineProgress}
+          icon={<Target className="w-6 h-6" />}
+          color="purple"
+        />
+        <StatCard
+          title="Metas Ativas"
+          value={data?.totalActiveGoals || 0}
+          icon={<TrendingUp className="w-6 h-6" />}
+          color="indigo"
+        />
+        <StatCard
+          title="Entrada de Diário"
+          value={moodText}
+          icon={<BookHeart className="w-6 h-6" />}
+          color="pink"
+        />
+        <StatCard
+          title="Humor de Hoje"
+          value={moodEmoji}
+          icon={<Smile className="w-6 h-6" />}
+          color="blue"
+        />
+      </section>
+
+      {/* Gráfico de Progresso Semanal e Metas Ativas */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+            {/* O ProgressChart já busca /api/routines/completions?days=7 */}
+            <ProgressChart /> 
+        </div>
+        <div className="lg:col-span-1 bg-white rounded-2xl p-6 shadow-xl">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Metas Ativas</h2>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+                {data?.activeGoals && data.activeGoals.length > 0 ? (
+                    data.activeGoals.map((goal) => (
+                        <GoalCard
+                            key={goal.id}
+                            goal={goal}
+                            onComplete={handleGoalToggle}
+                            isCompleted={completedGoalIds.includes(goal.id)}
+                            isLoading={isProcessing}
+                        />
+                    ))
+                ) : (
+                    <p className="text-gray-500 text-center py-4">
+                        Nenhuma meta ativa. Crie uma na seção Metas.
+                    </p>
+                )}
+            </div>
+        </div>
+      </section>
+
+      {/* Rotinas de Hoje */}
+      <section className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Target className="w-6 h-6 text-purple-600" /> Suas Rotinas de Hoje
+        </h2>
+        <div className="space-y-4">
+            {data?.todayRoutines && data.totalActiveRoutines > 0 ? (
+                data.todayRoutines.map((routine) => (
+                    <RoutineCard
+                        key={routine.id}
+                        routine={routine}
+                        onComplete={handleRoutineToggle}
+                        // Verifica o estado de conclusão no array local
+                        isCompleted={completedRoutineIds.includes(routine.id)}
+                        isLoading={isProcessing}
+                    />
+                ))
+            ) : (
+                <div className="bg-white rounded-xl p-6 shadow-md text-center">
+                    <p className="text-gray-600 font-medium">Nenhuma rotina ativa. Crie uma na seção Rotinas. 🎉</p>
+                </div>
+            )}
+        </div>
+      </section>
+      
+      {/* Botão de Navegação Rápida para Diário */}
+      <div className="fixed bottom-20 right-6 md:right-10 z-10">
+          <button 
+              onClick={() => navigate("/diary")}
+              className="w-16 h-16 bg-pink-500 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-pink-600 transition-colors transform hover:scale-105"
+              title="Ir para o Diário"
+          >
+              <BookHeart className="w-8 h-8" />
+          </button>
+      </div>
+    </Layout>
+  );
+}

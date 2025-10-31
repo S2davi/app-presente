@@ -1,0 +1,82 @@
+import { useEffect, useState } from "react";
+// É necessário instalar 'recharts': npm install recharts ou bun install recharts
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
+interface CompletionData {
+  date: string;
+  count: number;
+}
+
+export default function ProgressChart() {
+  const [data, setData] = useState<CompletionData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  async function fetchData() {
+    try {
+      // Endpoint que retorna as conclusões de rotinas dos últimos 7 dias
+      const response = await fetch("/api/routines/completions?days=7");
+      if (response.ok) {
+        const completions: { completed_date: string; count: number }[] = await response.json();
+        
+        // Formata os dados para o gráfico
+        const chartData = completions.map(item => ({
+            date: new Date(item.completed_date).toLocaleDateString("pt-BR", { 
+                month: "short", 
+                day: "numeric" 
+            }),
+            count: item.count,
+        })).sort((a, b) => {
+            // Ordena as datas para o gráfico
+            const dateA = new Date(a.date.split('/').reverse().join('-'));
+            const dateB = new Date(b.date.split('/').reverse().join('-'));
+            return dateA.getTime() - dateB.getTime();
+        });
+
+
+        setData(chartData);
+      }
+    } catch (error) {
+      console.error("Falha ao buscar dados do gráfico:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-2xl p-6 shadow-lg lg:h-[400px]">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">Progresso Semanal</h2>
+        <div className="h-64 flex items-center justify-center">
+          <p className="text-gray-500">Carregando gráfico...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-xl">
+      <h2 className="text-xl font-semibold mb-4 text-gray-800">Progresso Semanal de Rotinas</h2>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis dataKey="date" stroke="#6b7280" />
+          <YAxis stroke="#6b7280" domain={[0, 'dataMax + 1']} allowDecimals={false} />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "white",
+              border: "none",
+              borderRadius: "12px",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            }}
+            formatter={(value) => [`${value} rotinas`, 'Conclusões']}
+          />
+          <Bar dataKey="count" fill="#EC4899" radius={[8, 8, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

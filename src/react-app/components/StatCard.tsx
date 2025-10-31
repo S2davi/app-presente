@@ -1,0 +1,47 @@
+import { ReactNode } from "react";
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  progress?: number;
+  icon: ReactNode;
+  color: "purple" | "pink" | "blue" | "indigo";
+}
+
+export default function StatCard({ title, value, progress, icon, color }: StatCardProps) {
+  const colorClasses = {
+    purple: "bg-purple-100 text-purple-600",
+    pink: "bg-pink-100 text-pink-600",
+    blue: "bg-blue-100 text-blue-600",
+    indigo: "bg-indigo-100 text-indigo-600",
+  };
+
+  const progressColorClasses = {
+    purple: "bg-purple-500",
+    pink: "bg-pink-500",
+    blue: "bg-blue-500",
+    indigo: "bg-indigo-500",
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200">
+      <div className="flex items-center justify-between mb-4">
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClasses[color]}`}>
+          {icon}
+        </div>
+      </div>
+      <h3 className="text-sm font-medium text-gray-600 mb-1">{title}</h3>
+      <p className="text-3xl font-bold text-gray-900">{value}</p>
+      {progress !== undefined && (
+        <div className="mt-4">
+          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${progressColorClasses[color]} transition-all duration-500 rounded-full`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

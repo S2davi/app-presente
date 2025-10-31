@@ -1,0 +1,193 @@
+import { Hono } from "hono";
+import { z } from "zod";
+import { validator } from "@hono/zod-validator";
+import { Env } from "@/worker/index";
+import { Routine, RoutineCompletion } from "@/shared/types";
+
+const routines = new Hono<{ Bindings: Env }>();
+
+// Retorna a data de hoje no formato YYYY-MM-DD
+function getTodayDateString(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Schema de validação para a criação de uma rotina
+const NewRoutineSchema = z.object({
+  title: z.string().min(1, "O título é obrigatório."),
+  category: z.string().default("Cuidado"),
+  icon: z.string().min(1).default("✨"),
+  reminder_time: z.string().nullable().optional(),
+});
+
+// GET /api/routines
+// Lista todas as rotinas ativas do usuário
+routines.get("/", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+
+  try {
+    const { results } = await db
+      .prepare("SELECT * FROM routines WHERE user_id = ?1 AND is_active = 1 ORDER BY category, created_at")
+      .bind(user.id)
+      .all<Routine>();
+
+    return c.json(results);
+  } catch (error) {
+    console.error("Error fetching routines:", error);
+    return c.json({ error: "Falha ao buscar rotinas." }, 500);
+  }
+});
+
+// POST /api/routines
+// Cria uma nova rotina
+routines.post("/", validator("json", NewRoutineSchema), async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const data = c.req.valid("json");
+
+  try {
+    const statement = db
+      .prepare(
+        "INSERT INTO routines (user_id, title, category, icon, reminder_time) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING *"
+      )
+      .bind(
+        user.id,
+        data.title,
+        data.category,
+        data.icon,
+        data.reminder_time || null
+      );
+
+    const result = await statement.run();
+    const createdRoutine = result.results?.[0] as Routine;
+
+    return c.json(createdRoutine, 201);
+  } catch (error) {
+    console.error("Error creating routine:", error);
+    return c.json({ error: "Falha ao criar rotina." }, 500);
+  }
+});
+
+// DELETE /api/routines/:id
+// Deleta uma rotina (soft delete: is_active = 0)
+routines.delete("/:id", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const id = c.req.param("id");
+
+  try {
+    const statement = db
+      .prepare("UPDATE routines SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?1 AND user_id = ?2")
+      .bind(id, user.id);
+
+    const result = await statement.run();
+
+    if (result.changes === 0) {
+      return c.json({ error: "Rotina não encontrada ou não pertence ao usuário." }, 404);
+    }
+
+    return c.json({ message: "Rotina deletada com sucesso (marcada como inativa)." });
+  } catch (error) {
+    console.error("Error deleting routine:", error);
+    return c.json({ error: "Falha ao deletar rotina." }, 500);
+  }
+});
+
+// --- Rotas de Conclusão de Rotina (routine_completions) ---
+
+// POST /api/routines/:id/complete
+// Marca uma rotina como concluída no dia
+routines.post("/:id/complete", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const routineId = c.req.param("id");
+  const completedDate = getTodayDateString(); // Sempre usa a data de hoje para a conclusão
+
+  // 1. Verifica se a rotina existe e pertence ao usuário
+  const routine = await db
+    .prepare("SELECT id FROM routines WHERE id = ?1 AND user_id = ?2 AND is_active = 1")
+    .bind(routineId, user.id)
+    .first();
+
+  if (!routine) {
+    return c.json({ error: "Rotina não encontrada ou inativa." }, 404);
+  }
+  
+  // 2. Verifica se a conclusão já existe para evitar duplicatas
+  const existingCompletion = await db
+    .prepare("SELECT id FROM routine_completions WHERE routine_id = ?1 AND user_id = ?2 AND completed_date = ?3")
+    .bind(routineId, user.id, completedDate)
+    .first();
+
+  if (existingCompletion) {
+    return c.json({ message: "Rotina já concluída hoje." }, 200);
+  }
+
+  try {
+    // 3. Insere a nova conclusão
+    const statement = db
+      .prepare(
+        "INSERT INTO routine_completions (routine_id, user_id, completed_date, points) VALUES (?1, ?2, ?3, 10) RETURNING *"
+      )
+      .bind(routineId, user.id, completedDate);
+
+    const result = await statement.run();
+    const createdCompletion = result.results?.[0] as RoutineCompletion;
+
+    return c.json(createdCompletion, 201);
+  } catch (error) {
+    console.error("Error creating routine completion:", error);
+    return c.json({ error: "Falha ao registrar conclusão da rotina." }, 500);
+  }
+});
+
+// DELETE /api/routines/:id/complete?date=YYYY-MM-DD
+// Remove a conclusão de uma rotina de um dia específico
+routines.delete("/:id/complete", async (c) => {
+    const { user } = c.get("variables");
+    const db = c.env.DB;
+    const routineId = c.req.param("id");
+    const date = c.req.query("date") || getTodayDateString();
+
+    try {
+        const statement = db
+            .prepare("DELETE FROM routine_completions WHERE user_id = ?1 AND routine_id = ?2 AND completed_date = ?3")
+            .bind(user.id, routineId, date);
+
+        await statement.run();
+
+        return c.json({ message: `Conclusão da rotina ${routineId} removida para ${date}.` });
+    } catch (error) {
+        console.error("Error deleting routine completion:", error);
+        return c.json({ error: "Falha ao remover conclusão." }, 500);
+    }
+});
+
+// GET /api/routines/completions?days=N
+// Rota usada pelo ProgressChart.tsx para obter dados de progresso da semana
+routines.get("/completions", async (c) => {
+    const { user } = c.get("variables");
+    const db = c.env.DB;
+    const days = parseInt(c.req.query("days") || "7");
+
+    try {
+        const { results } = await db
+          .prepare(
+            `SELECT completed_date, COUNT(id) as count
+             FROM routine_completions
+             WHERE user_id = ?1 AND completed_date >= date('now', '-${days - 1} days')
+             GROUP BY completed_date
+             ORDER BY completed_date ASC`
+          )
+          .bind(user.id)
+          .all<RoutineCompletion & { count: number }>();
+
+        return c.json(results);
+    } catch (error) {
+        console.error("Error fetching completions for chart:", error);
+        return c.json({ error: "Falha ao buscar dados de conclusão para o gráfico." }, 500);
+    }
+});
+
+
+export default routines;

@@ -1,0 +1,213 @@
+import { Hono } from "hono";
+import { z } from "zod";
+import { zValidator } from "@hono/zod-validator";
+import { authMiddleware, envMiddleware, User } from "@getmocha/users-service";
+import { UserSettings, Routine, RoutineCompletion, Goal } from "@/shared/types";
+
+// Tipagem do Cloudflare Worker (definida pelo wrangler.json)
+interface Env {
+  DB: D1Database;
+}
+
+const app = new Hono<{ Bindings: Env }>();
+
+// 1. Middleware de Autenticação e Configuração
+// Garante que só usuários logados podem acessar as rotas abaixo.
+app.use("*", authMiddleware());
+app.use("*", envMiddleware());
+
+// =========================================================
+// Rota de Usuário/Configurações (Settings)
+// =========================================================
+
+// Esquema de validação para a rota de PATCH de configurações
+const settingsSchema = z.object({
+  theme: z.enum(["light", "dark"]).optional(),
+  primary_color: z.string().optional(),
+  secondary_color: z.string().optional(),
+  font_family: z.string().optional(),
+  notifications_enabled: z.number().int().min(0).max(1).optional(),
+});
+
+// GET /api/settings - Busca as configurações do usuário
+app.get("/api/settings", async (c) => {
+  const user: User = c.get("user");
+  const { DB } = c.env;
+
+  // Seleciona todas as colunas relevantes
+  const { results } = await DB.prepare(
+    `SELECT theme, primary_color, secondary_color, font_family, notifications_enabled
+     FROM users
+     WHERE id = ?`
+  )
+    .bind(user.id)
+    .all<UserSettings>();
+
+  if (!results || results.length === 0) {
+    // Se não houver configurações, retorna o padrão do ThemeContext.tsx
+    const defaultSettings: UserSettings = {
+      theme: "light",
+      primary_color: "#8B5CF6",
+      secondary_color: "#EC4899",
+      font_family: "Inter",
+      notifications_enabled: 1,
+    };
+    return c.json(defaultSettings);
+  }
+
+// No seu arquivo principal do Worker (ex: src/worker/index.ts)
+// ...
+import goals from "./api/goals";
+import routines from "./api/routines";
+// ...
+// Adicione a rota antes de iniciar o servidor ou em seu roteador principal
+app.route("/api/goals", goals);
+app.route("/api/routines", routines);
+// ...
+
+  // Retorna as configurações salvas
+  return c.json(results[0]);
+});
+
+// PATCH /api/settings - Atualiza as configurações do usuário
+app.patch("/api/settings", zValidator("json", settingsSchema), async (c) => {
+  const user: User = c.get("user");
+  const { DB } = c.env;
+  const updates = c.req.valid("json");
+
+  // Constrói a query de atualização dinamicamente
+  const fields = Object.keys(updates)
+    .map((key) => `${key} = ?`)
+    .join(", ");
+  const values = Object.values(updates);
+
+  if (fields.length === 0) {
+    return c.json({ message: "Nenhuma atualização fornecida" }, 400);
+  }
+
+  await DB.prepare(
+    `UPDATE users 
+     SET ${fields}, updated_at = CURRENT_TIMESTAMP 
+     WHERE id = ?`
+  )
+    .bind(...values, user.id)
+    .run();
+
+  return c.json({ message: "Configurações atualizadas com sucesso" });
+});
+
+// =========================================================
+// Rotas de Rotinas (Routines)
+// =========================================================
+
+// GET /api/routines - Lista todas as rotinas ativas
+app.get("/api/routines", async (c) => {
+  const user: User = c.get("user");
+  const { DB } = c.env;
+
+  const { results } = await DB.prepare(
+    `SELECT *
+     FROM routines
+     WHERE user_id = ? AND is_active = 1
+     ORDER BY title ASC`
+  )
+    .bind(user.id)
+    .all<Routine>();
+
+  return c.json(results || []);
+});
+
+// GET /api/routines/completions?days=N - Conta as conclusões de rotina dos últimos N dias
+app.get("/api/routines/completions", async (c) => {
+  const user: User = c.get("user");
+  const { DB } = c.env;
+  const days = c.req.query("days") ? parseInt(c.req.query("days")!) : 7;
+  
+  if (isNaN(days) || days < 1 || days > 365) {
+      return c.json({ error: "O parâmetro 'days' deve ser um número entre 1 e 365." }, 400);
+  }
+
+  // Obtém a data de N dias atrás
+  // Note: Para garantir compatibilidade com D1/SQLite, usamos o datetime()
+  const startDate = `datetime('now', '-${days} days')`;
+
+  // Agrupa as conclusões por data e conta a ocorrência
+  const { results } = await DB.prepare(
+    `SELECT 
+        strftime('%Y-%m-%d', completed_date) as completed_date, 
+        COUNT(id) as count
+     FROM routine_completions
+     WHERE user_id = ? AND completed_date >= ${startDate}
+     GROUP BY completed_date
+     ORDER BY completed_date ASC`
+  )
+    .bind(user.id)
+    .all<{ completed_date: string; count: number }>();
+
+  // O ProgressChart.tsx espera um array de objetos { date: string, count: number }
+  // O resultado do D1 já está quase pronto, só precisa renomear a coluna
+  const chartData = results.map(row => ({
+      date: row.completed_date,
+      count: row.count
+  }));
+
+  // O ProgressChart fará a formatação final da data ('MM/DD')
+  return c.json(chartData || []);
+});
+
+// =========================================================
+// Rotas de Metas (Goals)
+// =========================================================
+
+// GET /api/goals - Lista todas as metas ativas
+app.get("/api/goals", async (c) => {
+  const user: User = c.get("user");
+  const { DB } = c.env;
+
+  const { results } = await DB.prepare(
+    `SELECT *
+     FROM goals
+     WHERE user_id = ? AND is_active = 1
+     ORDER BY created_at DESC`
+  )
+    .bind(user.id)
+    .all<Goal>();
+
+  return c.json(results || []);
+});
+
+
+// Exporta a aplicação Hono
+export default app;
+
+
+// src/worker/index.ts
+
+import { Hono } from "hono";
+import { AuthMiddleware } from "@getmocha/users-service/worker";
+import { Env } from "./index";
+
+// 1. Importe os módulos de rotas (incluindo o 'home')
+import goals from "./api/goals";
+import routines from "./api/routines";
+import settings from "./api/settings";
+import diary from "./api/diary";
+import home from "./api/home"; // <-- NOVO: Rota de Home/Dashboard
+
+const app = new Hono<{ Bindings: Env }>();
+
+// Middleware de Autenticação (deve vir antes das rotas protegidas)
+app.use("/api/*", AuthMiddleware);
+
+// 2. Registre todas as rotas da API (incluindo o 'home')
+app.route("/api/goals", goals);
+app.route("/api/routines", routines);
+app.route("/api/settings", settings);
+app.route("/api/diary", diary);
+app.route("/api/home", home); // <-- NOVO: Registro da Rota da Home
+
+app.get("/api/hello", (c) => {
+  return c.json({ message: "Hello from Hono!" });
+});
+
+export default app;

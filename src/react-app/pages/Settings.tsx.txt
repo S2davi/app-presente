@@ -1,0 +1,83 @@
+import Layout from "@/react-app/components/Layout";
+import { Settings, Loader2 } from "lucide-react";
+import { useTheme } from "@/react-app/contexts/ThemeContext";
+
+export default function SettingsPage() {
+  const { settings, updateSettings, isLoading } = useTheme();
+
+  // Handlers para os controles
+  const handleThemeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newTheme = e.target.value as "light" | "dark";
+    updateSettings({ theme: newTheme });
+  };
+
+  const handlePrimaryColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateSettings({ primary_color: e.target.value });
+  };
+
+  // Se estiver carregando as configurações do usuário do backend
+  if (isLoading) {
+    return (
+        <Layout>
+            <div className="flex items-center justify-center h-64 text-gray-500">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" /> Carregando configurações...
+            </div>
+        </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="flex items-center gap-4 mb-8">
+        <Settings className="w-8 h-8 text-indigo-600" />
+        <h1 className="text-3xl font-bold text-gray-800">Configurações</h1>
+      </div>
+      <div className="bg-white rounded-2xl p-6 shadow-lg space-y-6">
+        
+        {/* Configuração de Tema */}
+        <div>
+            <label htmlFor="theme-select" className="block text-sm font-medium text-gray-700 mb-1">
+                Tema de Cor
+            </label>
+            <select
+                id="theme-select"
+                value={settings.theme}
+                onChange={handleThemeChange}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+            >
+                <option value="light">Claro ☀️</option>
+                <option value="dark">Escuro 🌙</option>
+            </select>
+        </div>
+
+        {/* Configuração de Cor Primária */}
+        <div>
+            <label htmlFor="primary-color-input" className="block text-sm font-medium text-gray-700 mb-1">
+                Cor Principal (Hex)
+            </label>
+            <div className="mt-1 flex items-center gap-3">
+                <input
+                    type="color"
+                    id="primary-color-picker"
+                    value={settings.primary_color}
+                    onChange={handlePrimaryColorChange}
+                    className="w-10 h-10 border-none rounded-full cursor-pointer overflow-hidden p-0"
+                />
+                <input
+                    type="text"
+                    id="primary-color-input"
+                    value={settings.primary_color}
+                    onChange={handlePrimaryColorChange}
+                    className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                />
+            </div>
+        </div>
+
+        <p className="text-sm text-gray-500 pt-4 border-t">
+            * As alterações de tema e cor são aplicadas automaticamente e salvas no backend (`/api/settings`).
+        </p>
+
+      </div>
+    </Layout>
+  );
+}

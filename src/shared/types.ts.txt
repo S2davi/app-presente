@@ -1,0 +1,126 @@
+// Os tipos devem ser importados no frontend e no backend (worker)
+// para garantir a tipagem correta em toda a aplicação.
+
+export interface UserSettings {
+  theme: "light" | "dark";
+  primary_color: string;
+  secondary_color: string;
+  font_family: string;
+  notifications_enabled: 0 | 1;
+}
+
+export interface Routine {
+  id: number;
+  user_id: string;
+  title: string;
+  category: string;
+  icon: string;
+  reminder_time: string | null;
+  is_active: 0 | 1;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoutineCompletion {
+  id: number;
+  routine_id: number;
+  user_id: string;
+  completed_date: string; // Formato DATE, ex: '2025-10-31'
+  points: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Goal {
+  id: number;
+  user_id: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  target_frequency: number;
+  is_active: 0 | 1;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoalProgress {
+  id: number;
+  goal_id: number;
+  user_id: string;
+  completed_date: string; // Formato DATE, ex: '2025-10-31'
+  created_at: string;
+  updated_at: string;
+}
+
+// Tipos para as tabelas 'goals' e 'goal_progress' de 1.sql
+
+export interface Goal {
+  id: number;
+  user_id: string; // O ID do usuário logado (herdado do AuthProvider)
+  title: string;
+  description: string | null;
+  icon: string; // Ex: "🎯", "🧠", "💪"
+  target_frequency: number; // Ex: 7 para uma meta semanal
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoalProgress {
+  id: number;
+  goal_id: number;
+  user_id: string;
+  completed_date: string; // Formato 'YYYY-MM-DD'
+  created_at: string;
+}
+
+// O tipo de settings já existe, mas incluímos aqui para referência
+export interface UserSettings {
+  theme: "light" | "dark";
+  primary_color: string;
+  secondary_color: string;
+  font_family: string;
+  notifications_enabled: number;
+}
+
+// Tipos para as tabelas 'routines' e 'routine_completions' de 1.sql
+
+export interface Routine {
+  id: number;
+  user_id: string;
+  title: string;
+  category: string; // Ex: "Manhã", "Tarde", "Noite", "Cuidado"
+  icon: string; // Ex: "☕", "🧘‍♀️", "🛌"
+  reminder_time: string | null; // Ex: "08:00" (Para notificações futuras)
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoutineCompletion {
+  id: number;
+  routine_id: number;
+  user_id: string;
+  completed_date: string; // Formato 'YYYY-MM-DD'
+  points: number; // Para um sistema de gamificação futuro (usamos DEFAULT 10)
+  created_at: string;
+}
+
+// ... (Mantenha as interfaces Goal e GoalProgress e UserSettings que já existem)
+
+
+// src/shared/types.ts (Atualize o arquivo)
+
+// ... (Mantenha as interfaces Routine, RoutineCompletion, Goal, GoalProgress e UserSettings)
+
+export interface DiaryEntry {
+  id: number;
+  user_id: string;
+  content: string;
+  entry_date: string; // Formato 'YYYY-MM-DD'
+  mood: string | null; // Ex: "feliz", "triste", "calmo"
+  created_at: string;
+  updated_at: string;
+}
+
+// ...

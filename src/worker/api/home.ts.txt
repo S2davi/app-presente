@@ -1,0 +1,93 @@
+// src/worker/api/home.ts
+
+import { Hono } from "hono";
+import { Env } from "@/worker/index";
+import { Routine, Goal, DiaryEntry } from "@/shared/types";
+
+const home = new Hono<{ Bindings: Env }>();
+
+// Função auxiliar para obter a data de hoje no formato YYYY-MM-DD
+function getTodayDateString(): string {
+  // Retorna a data de hoje no formato YYYY-MM-DD
+  return new Date().toISOString().split("T")[0];
+}
+
+
+// GET /api/home/data
+// Coleta todos os dados necessários para o dashboard em uma única chamada
+home.get("/data", async (c) => {
+  const { user } = c.get("variables");
+  const db = c.env.DB;
+  const today = getTodayDateString();
+
+  try {
+    // 1. Rotinas de Hoje (e se estão completas hoje)
+    const routinesPromise = db
+      .prepare(
+        `SELECT
+          r.*,
+          CASE WHEN rc.id IS NOT NULL THEN 1 ELSE 0 END AS is_completed_today
+        FROM routines r
+        LEFT JOIN routine_completions rc
+          ON r.id = rc.routine_id AND rc.user_id = ?1 AND rc.completed_date = ?2
+        WHERE r.user_id = ?1 AND r.is_active = 1
+        ORDER BY r.title ASC`
+      )
+      .bind(user.id, today)
+      .all<Routine & { is_completed_today: number }>();
+
+    // 2. Metas Ativas (e se estão completas hoje)
+    const goalsPromise = db
+      .prepare(
+        `SELECT
+          g.*,
+          CASE WHEN gp.id IS NOT NULL THEN 1 ELSE 0 END AS is_completed_today
+        FROM goals g
+        LEFT JOIN goal_progress gp
+          ON g.id = gp.goal_id AND gp.user_id = ?1 AND gp.completed_date = ?2
+        WHERE g.user_id = ?1 AND g.is_active = 1
+        ORDER BY g.title ASC`
+      )
+      .bind(user.id, today)
+      .all<Goal & { is_completed_today: number }>();
+      
+    // 3. Entrada do Diário de Hoje
+    const diaryPromise = db
+      .prepare(
+        "SELECT * FROM diary_entries WHERE user_id = ?1 AND entry_date = ?2"
+      )
+      .bind(user.id, today)
+      .first<DiaryEntry>();
+
+    const [routinesResult, goalsResult, diaryEntryToday] = await Promise.all([
+      routinesPromise,
+      goalsPromise,
+      diaryPromise,
+    ]);
+
+    // Mapeia resultados e calcula as estatísticas
+    const allRoutines = routinesResult.results.map(r => ({ ...r, is_completed_today: r.is_completed_today === 1 }));
+    const allGoals = goalsResult.results.map(g => ({ ...g, is_completed_today: g.is_completed_today === 1 }));
+
+    const routineCompletionsToday = allRoutines.filter(r => r.is_completed_today).length;
+    const totalActiveRoutines = allRoutines.length;
+
+    const goalCompletionsToday = allGoals.filter(g => g.is_completed_today).length;
+    const totalActiveGoals = allGoals.length;
+    
+    return c.json({
+      todayRoutines: allRoutines,
+      activeGoals: allGoals,
+      routineCompletionsToday,
+      totalActiveRoutines,
+      goalCompletionsToday,
+      totalActiveGoals,
+      diaryEntryToday: diaryEntryToday || null,
+    });
+  } catch (error) {
+    console.error("Error fetching home data:", error);
+    return c.json({ error: "Falha ao buscar dados da Home." }, 500);
+  }
+});
+
+export default home;
