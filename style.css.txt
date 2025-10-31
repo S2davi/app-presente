@@ -1,289 +1,262 @@
-/* style.css - Tema Leticinha Fofo e Pastel - CORRIGIDO */
+/* style.css - Tema Romântico Fofo (Clonagem do Layout do Mocha) */
 
+/* --- 1. VARIÁVEIS DE COR FOFAS E FONTES --- */
 :root {
-  /* CORREÇÃO: Cores fofas concretas (MANTER ESTES NOMES) */
-  --bg: #f4f7f6;        
-  --card: #ffffff;      
-  --primary: #ff69b4;   /* Rosa Choque/Pink */
-  --accent: #9370db;    /* Lilás Suave */
-  --secondary-light: #ffc0cb; /* Rosa Claro */
-  --text: #333;         
-
-  /* Variáveis de estilo */
-  --sombra-suave: 0 4px 12px rgba(0, 0, 0, 0.08); 
-  --borda-arredondada: 18px; 
+    /* Nossas cores personalizadas */
+    --cor-primaria: #ff69b4; /* Rosa Choque */
+    --cor-secundaria: #ffc0cb; /* Rosa Claro/Pastel */
+    --cor-fundo: #f4f7f6; /* Fundo Suave */
+    --cor-texto: #333;
+    --cor-detalhe: #9370db; /* Lilás Suave (o antigo accent) */
+    
+    /* Configurações de Design do Mocha/Florescer */
+    --sombra-suave: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra Leve */
+    --borda-arredondada: 18px; /* Borda bem arredondada (como no Mocha) */
+    --card-bg: white;
+    
+    /* Cores de status */
+    --color-done: #9370db; /* Lilás Suave para concluído */
 }
 
-* { 
-    box-sizing: border-box; 
-    margin: 0;
-}
-
+/* Base - Fontes, Fundo */
+* { box-sizing: border-box; }
 body {
-  font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif; 
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.6;
-  padding-bottom: 50px;
+    margin: 0;
+    /* Fonte fofa */
+    font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif; 
+    background-color: var(--cor-fundo); 
+    color: var(--cor-texto);
+    line-height: 1.6;
+    padding-bottom: 75px; /* Espaço para a barra inferior */
 }
 
 .app {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
+    max-width: 900px;
+    margin: 18px auto;
+    padding: 12px;
 }
 
-/* --- HEADER E FOTO --- */
+/* --- 2. ESTILOS DO HEADER (FOTO DE CASAL) --- */
 header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 15px 0;
-  margin-bottom: 25px;
-  /* CORREÇÃO: Usando a variável correta --secondary-light */
-  border-bottom: 2px solid var(--secondary-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 0 8px; /* Pequeno padding para alinhar o conteúdo */
 }
 
 header h1 {
-  /* CORREÇÃO: Usando a variável correta --primary */
-  color: var(--primary);
-  font-size: 2em;
-  margin: 0;
+    margin: 0;
+    font-size: 26px;
+    /* Gradiente como o Mocha, mas nas nossas cores */
+    background: linear-gradient(to right, var(--cor-detalhe), var(--cor-primaria));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    font-weight: bold;
 }
 
 .subtitle {
-  font-size: 0.9em;
-  color: #777;
+    margin: 2px 0 0 0;
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
 }
 
-/* --- ESTILOS DO NOVO CONTÊINER DA FOTO --- */
-.photo-container { /* CORREÇÃO: Deve ser o seletor .photo-container */
-    width: 80px;    
-    height: 80px;
-    border-radius: 50%;
-    overflow: hidden; 
-    /* CORREÇÃO: Usando a variável correta --accent para a borda lilás */
-    border: 4px solid var(--accent); 
-    box-shadow: var(--sombra-suave);
+/* Estilo da Foto (Redonda) */
+.photo-container {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%; /* Redondo */
+    overflow: hidden;
+    border: 3px solid var(--cor-secundaria); /* Borda suave */
+    box-shadow: var(--sombra-suave);
+    flex-shrink: 0; /* Não encolher a foto */
 }
 
-.photo-container img { /* CORREÇÃO: Seletor para a imagem dentro do container */
-    /* A imagem preenche o contêiner de 80px x 80px */
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
-
+#top-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Garante que a imagem preencha o container */
 }
 
- {
-    /* A imagem preenche o contêiner de 80px x 80px */
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
-}
-
-
-/* --- ESTRUTURA PRINCIPAL (MAIN) --- */
-main {
-  /* Layout de uma coluna para celular (padrão) */
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-
-/* NOVO: Estilo para TELAS MAIORES (Tablets/Desktops) */
-@media (min-width: 600px) {
-    main {
-        /* Divide o espaço em 3 colunas para o layout moderno */
-        grid-template-columns: repeat(3, 1fr); 
-    }
-}
-
-/* NOVO: Regras para fazer o card de Metas/Exercícios ocupar duas colunas */
-.goals-card, .message-card {
-    grid-column: span 1; /* Padrão: Ocupa 1 coluna */
-}
-
-/* Faz o Card de Metas/Exercícios e Mensagem do Davi ocupar 2/3 do espaço em telas maiores */
-@media (min-width: 600px) {
-    .goals-card, .message-card {
-        grid-column: span 2; 
-    }
-}
-
-/* --- ESTILO DE TODOS OS CARDS --- */
+/* --- 3. ESTILOS DOS CARDS (O Layout Mocha) --- */
 .card {
-  background: var(--card);
-  border-radius: var(--borda-arredondada);
-  padding: 18px;
-  box-shadow: var(--sombra-suave);
+    padding: 20px;
+    background-color: var(--card-bg);
+    border-radius: var(--borda-arredondada);
+    box-shadow: var(--sombra-suave);
+    margin-bottom: 16px; /* Espaço entre as seções */
+    transition: transform 0.2s;
+    border: 1px solid var(--cor-secundaria); /* Borda para destaque */
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 
 .card h2 {
-    /* CORREÇÃO: Usando a variável correta --accent para títulos */
-    color: var(--accent);
-    font-size: 1.5em;
-    /* CORREÇÃO: Usando a variável correta --secondary-light */
-    border-bottom: 1px dashed var(--secondary-light);
-    padding-bottom: 10px;
+    color: var(--cor-detalhe); /* Lilás Suave para títulos */
     margin-top: 0;
+    font-size: 1.4em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
     margin-bottom: 15px;
 }
 
-/* ... (Mantenha o resto do seu CSS inalterado, pois o problema estava nas variáveis) ... */
-
-.goals-card ul {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 10px 0;
+/* Layout em Grid para cards menores (Hidratação e Humor) */
+.cards-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* Padrão Mobile: 1 coluna */
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
-.goal-item {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  padding:12px;
-  border-radius:10px;
-  margin-bottom:8px;
-  background: #fff0f5;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  transition: background-color 0.3s;
+@media (min-width: 600px) {
+    .cards-grid {
+        grid-template-columns: repeat(2, 1fr); /* Tablet/Desktop: 2 colunas */
+    }
 }
 
-.goal-item label {
-  cursor: pointer;
-  flex:1;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.goal-text.done {
-  text-decoration: line-through;
-  opacity: 0.6;
-  color: #a8a8a8;
-}
-
-.del-btn {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 1.2em;
-  color: var(--primary);
-}
-
-/* --- INPUTS E BOTÕES --- */
-.add-goal {
-  display:flex;
-  gap:8px;
-  margin-top:15px;
-}
-
-.add-goal input, #new-goal {
-  flex:1;
-  padding:10px;
-  border-radius:10px;
-  border:1px solid var(--secondary-light);
-  font-size: 1em;
-}
-
-.add-goal button {
-  padding:10px 15px;
-  border-radius:10px;
-  border:none;
-  background:var(--primary);
-  color:white;
-  cursor:pointer;
-  font-weight: bold;
-}
-
-/* --- MENSAGEM DO DAVI --- */
-#next-msg {
+/* Estilo de Botões */
+button, .add-goal button {
     padding: 10px 15px;
-    border-radius: 8px;
-    border: 1px solid var(--primary);
-    background: white;
-    color: var(--primary);
-    cursor: pointer;
-    font-weight: bold;
-    display: block;
-    width: 100%;
-    margin-top: 15px;
-}
-
-/* --- GRÁFICO --- */
-#graficoProgresso {
-    display: block;
-    margin: 20px auto 0;
-    border: 1px solid var(--secondary-light);
-    border-radius: 10px;
-    background-color: #ffe4e8; 
-}
-
-/* --- RODAPÉ --- */
-footer {
-  text-align:center;
-  margin-top:20px;
-  color:#777;
-  font-size:0.85em;
-}
-
-/* --- ESTILOS DOS NOVOS CARDS (Mood e Water) --- */
-
-/* Estilo geral para botões de ação fofos */
-.add-button {
-    width: 100%;
-    padding: 10px;
     border-radius: 12px;
     border: none;
-    background: var(--primary); /* Rosa Choque */
+    background: var(--cor-primaria); /* Rosa Choque */
     color: white;
     cursor: pointer;
     font-weight: bold;
-    margin-top: 15px;
-    font-size: 1.1em;
-    transition: background-color 0.2s;
+    transition: background 0.3s, transform 0.1s;
 }
 
-.add-button:hover {
-    background: #e04a9e; /* Rosa escuro ao passar o mouse */
+button:active {
+    transform: scale(0.98);
 }
 
-/* --- MOOD CARD --- */
-.mood-card {
-    grid-row: span 1; /* Ocupa 1 linha */
-    text-align: center;
+/* --- 4. ESTILOS DA SEÇÃO METAS/TAREFAS --- */
+#goals-list {
+    list-style: none;
+    padding: 0;
 }
 
-#mood-emojis {
+#goals-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fcfcfc;
+    border: 1px solid #f0f0f0;
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    transition: background-color 0.3s;
+}
+
+.goal-text {
+    flex-grow: 1;
+    margin-right: 15px;
+    font-size: 16px;
+}
+
+.goal-text.done {
+    text-decoration: line-through;
+    opacity: 0.6;
+    color: var(--color-done); /* Lilás */
+}
+
+/* Checkbox bonito */
+.goal-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: var(--cor-primaria); /* Rosa Choque no check */
+}
+
+.del-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 6px;
+    color: #ff4d4d;
+}
+
+.add-goal {
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+}
+
+.add-goal input {
+    flex:1;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-size: 16px;
+}
+
+/* --- 5. BARRA DE NAVEGAÇÃO INFERIOR (CLONADA DO MOCHA) --- */
+#bottom-bar {
+    position: fixed; 
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    
     display: flex;
     justify-content: space-around;
     align-items: center;
-    font-size: 2.5em;
-    padding: 15px 0;
+    
+    height: 65px; 
+    background: var(--card-bg); /* Fundo branco do card */
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15); /* Sombra mais forte */
+    
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 1000;
 }
 
-.mood-placeholder {
-    font-size: 0.9em;
-    color: #777;
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #999; 
+    flex: 1;
+    padding: 5px 0;
+    transition: color 0.3s;
 }
 
-/* --- WATER CARD --- */
-.water-card {
-    grid-row: span 1; /* Ocupa 1 linha */
+.nav-item.active {
+    color: var(--cor-primaria); /* Rosa choque quando ativo */
 }
 
-#water-display {
-    text-align: center;
-    font-size: 2em;
-    min-height: 50px;
-    padding: 10px 0;
-    color: var(--accent);
+.nav-item .icon {
+    font-size: 26px; /* Ícone um pouco maior */
+    margin-bottom: 2px;
 }
 
-.water-placeholder {
-    font-size: 0.9em;
-    color: #777;
+.nav-item .label {
+    font-size: 10px;
+    font-weight: 600;
+}
+
+/* --- 6. ESTILOS DE TROCA DE PÁGINA (JS) --- */
+.page {
+    display: none;
+    padding-bottom: 10px; /* Para não encostar na barra inferior */
+}
+.page.active {
+    display: block;
+}
+
+.page-title {
+    color: var(--cor-primaria); 
+    font-size: 1.8em;
+    font-weight: bold;
+    margin-bottom: 20px;
+    padding-left: 5px;
 }

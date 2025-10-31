@@ -3,13 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Leticinha App</title>
+  <title>Leticinha App 💖</title>
+  
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
   <meta name="theme-color" content="#ff69b4"/>
   <script src="script.js" defer></script> 
 </head>
 <body>
+
   <div class="app">
     
     <header>
@@ -24,23 +26,31 @@
       </div>
     </header>
 
-    <main>
+    <main id="home-page" class="page active">
+      
+      <section class="card message-card">
+        <h2>💌 Mensagem do Davi</h2>
+        <p id="motivate">A vida é um presente, e eu amo dividir ela com você.</p>
+        <button id="next-msg">Próxima Mensagem</button>
+      </section>
+      
+      <div class="cards-grid">
+          <section class="card water-card">
+            <h2>💧 Hidratação</h2>
+            <div id="water-display">
+                <p class="water-placeholder">Beba seu primeiro copo! (0/8)</p>
+            </div>
+            <button id="add-water-btn" class="add-button">+ 1 Copo</button>
+          </section>
+          
+          <section class="card mood-card">
+            <h2>✨ Meu Sentimento</h2>
+            <div id="mood-emojis">
+                <p class="mood-placeholder">Como você se sente hoje?</p>
+            </div>
+          </section>
+      </div>
 
-      <section class="card water-card">
-        <h2>💧 Hidratação</h2>
-        <div id="water-display">
-            <p class="water-placeholder">Beba seu primeiro copo! (0/8)</p>
-        </div>
-        <button id="add-water-btn" class="add-button">+ 1 Copo</button>
-      </section>
-      
-      <section class="card mood-card">
-        <h2>✨ Meu Sentimento</h2>
-        <div id="mood-emojis">
-            <p class="mood-placeholder">Como você se sente hoje?</p>
-        </div>
-      </section>
-      
       <section id="goals-app" class="card goals-card">
         <h2>📝 Minhas Metas e Tarefas</h2>
         
@@ -52,19 +62,45 @@
           <button id="add-goal-btn">Adicionar</button> 
         </div>
       </section>
-
-      <section class="card message-card">
-        <h2>💌 Mensagem do Davi</h2>
-        <p id="motivate">...</p>
-        <button id="next-msg">Próxima mensagem surpresa!</button>
-      </section>
       
     </main>
 
-    <footer>
-      <p>Feito com ❤️ por Davi — um empurrãozinho para ela florescer.</p>
-    </footer>
+    <main id="routines-page" class="page hidden">
+        <h2 class="page-title">🏃‍♀️ Minhas Rotinas Diárias</h2>
+        <div class="card"><p>Ainda não há rotinas criadas. Que tal uma "Rotina de Relaxamento" para começar?</p></div>
+    </main>
 
-  </div> 
-</body>
+    <main id="diary-page" class="page hidden">
+        <h2 class="page-title">📖 Meu Diário Pessoal</h2>
+        <div class="card"><p>Um espaço seguro para registrar seus pensamentos e sentimentos mais íntimos.</p></div>
+    </main>
+    
+    <main id="settings-page" class="page hidden">
+        <h2 class="page-title">⚙️ Configurações</h2>
+        <div class="card"><p>Configurações (ex: Sair, Créditos)</p></div>
+    </main>
+
+  </div> <nav id="bottom-bar">
+      <a href="#" class="nav-item active" data-page="home">
+          <span class="icon">🏠</span>
+          <span class="label">Início</span>
+      </a>
+      <a href="#" class="nav-item" data-page="routines">
+          <span class="icon">🏃‍♀️</span>
+          <span class="label">Rotinas</span>
+      </a>
+      <a href="#" class="nav-item" data-page="goals">
+          <span class="icon">🎯</span>
+          <span class="label">Metas</span>
+      </a>
+      <a href="#" class="nav-item" data-page="diary">
+          <span class="icon">📖</span>
+          <span class="label">Diário</span>
+      </a>
+      <a href="#" class="nav-item" data-page="settings">
+          <span class="icon">⚙️</span>
+          <span class="label">Config</span>
+      </a>
+  </nav>
+  </body>
 </html>

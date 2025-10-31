@@ -1,212 +1,91 @@
-// script.js - Lógica Central do App (Metas, Mensagens, Hidratação, Humor)
+// script.js - Lógica completa (Funcionalidades existentes + Troca de Página)
 
-// --- ESTADO GLOBAL (SALVAMENTO) ---
-// Versão do cache para forçar a atualização se algo mudar drasticamente
-const STATE_KEY = 'florescer_state_v4'; 
-const initialState = {
-  messageIndex: 0,
-  goals: [], 
-  waterCount: 0,
-  moodToday: null,
-  moodDate: null // Para resetar a água e o humor diariamente
-};
-
-let state = loadState();
-
-function loadState() {
-  const savedState = localStorage.getItem(STATE_KEY);
-  if (savedState) {
-    let loaded = JSON.parse(savedState);
-    
-    // Logica para resetar a água e o humor no início de um novo dia
-    const today = new Date().toDateString();
-    if (loaded.moodDate !== today) {
-        loaded.waterCount = 0;
-        loaded.moodToday = null;
-        loaded.moodDate = today;
-    }
-    return loaded;
-  }
-  initialState.moodDate = new Date().toDateString();
-  return initialState;
-}
-
-function saveState(newState) {
-  localStorage.setItem(STATE_KEY, JSON.stringify(newState));
-  state = newState;
-}
-
-// --- CONFIGURAÇÕES ---
+// --- 1. VARIÁVEIS E ESTADO ---
+const STORAGE_KEY = 'letis_app_state_v2';
 const MESSAGES = [
-  "Você é a mulher mais forte e incrível que eu conheço! Eu te amo muito!",
-  "Lembre-se de beber água e dar um tempo para você hoje. Seu Davi te ama!",
-  "Seu sorriso ilumina meu dia. Não esqueça de sorrir!",
-  "Quando a saudade bater, saiba que estou pensando em você.",
-  "Estou torcendo por você em todas as suas metas. Você vai longe!",
-  "Você é linda, de dentro para fora. Nunca duvide disso."
+    "A vida é um presente, e eu amo dividir ela com você.",
+    "Lembre-se: você é forte, inteligente e a pessoa mais linda que conheço. Eu te amo!",
+    "Se precisar de um abraço hoje, me procure! Estou aqui para você.",
+    "O nosso futuro é construído com os seus sorrisos de hoje. Te amo!",
+    "Um lembrete fofo do Davi: você é incrível. 💖"
 ];
 
-// --- 1. METAS E MENSAGENS ---
+let state = {
+    waterCount: 0,
+    goals: [
+        { text: "Beber pelo menos 8 copos de água", done: false },
+        { text: "Dormir 7 horas seguidas", done: false },
+        { text: "Ler 10 páginas de um livro", done: false },
+        { text: "Me exercitar por 30 minutos", done: false },
+        { text: "Passar 10 minutos longe das telas", done: false }
+    ],
+    messageIndex: 0
+};
 
-function renderGoals() {
-  const goalsList = document.getElementById("goals-list");
-  if (!goalsList) return;
+// --- 2. FUNÇÕES DE ARMAZENAMENTO ---
 
-  goalsList.innerHTML = '';
-  state.goals.forEach((goal, index) => {
-    const li = document.createElement('li');
-    li.classList.add('goal-item');
-    li.innerHTML = `
-      <label>
-        <input type="checkbox" ${goal.done ? 'checked' : ''} onchange="toggleGoal(${index})">
-        <span class="goal-text ${goal.done ? 'done' : ''}">${goal.text}</span>
-      </label>
-      <button class="del-btn" onclick="deleteGoal(${index})">❌</button>
-    `;
-    goalsList.appendChild(li);
-  });
+function loadState() {
+    const savedState = localStorage.getItem(STORAGE_KEY);
+    if (savedState) {
+        // Mescla o estado salvo com o estado padrão para garantir que novas chaves existam
+        const loaded = JSON.parse(savedState);
+        state = { ...state, ...loaded };
+        // Garante que o array de metas seja carregado corretamente
+        if (!state.goals || state.goals.length === 0) {
+             state.goals = [
+                { text: "Beber pelo menos 8 copos de água", done: false },
+                { text: "Dormir 7 horas seguidas", done: false },
+                { text: "Ler 10 páginas de um livro", done: false }
+            ];
+        }
+    }
 }
 
-function toggleGoal(index) {
-  state.goals[index].done = !state.goals[index].done;
-  saveState(state);
-  renderGoals();
+function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function deleteGoal(index) {
-  state.goals.splice(index, 1);
-  saveState(state);
-  renderGoals();
-}
+// --- 3. FUNCIONALIDADES DE HIDRATAÇÃO ---
 
-function showMessage() {
-  const el = document.getElementById("motivate");
-  if (el) { el.textContent = MESSAGES[state.messageIndex % MESSAGES.length]; }
-}
-
-// --- 2. WATER TRACKER ---
-
-const WATER_GOAL = 8; // Meta de 8 copos por dia
-
-function renderWaterTracker() {
-  const waterDisplay = document.getElementById("water-display");
-  if (!waterDisplay) return;
-  
-  let display = '';
-  if (state.waterCount === 0) {
-      display = '<p class="water-placeholder">Beba seu primeiro copo! (0/8)</p>';
-  } else {
-      // 💧 = copo cheio, ▫️ = copo vazio
-      const fullCups = '💧'.repeat(state.waterCount);
-      const emptyCups = '▫️'.repeat(WATER_GOAL - state.waterCount);
-      display = `<span class="water-cups">${fullCups}${emptyCups}</span> (${state.waterCount}/${WATER_GOAL})`;
-  }
-
-  waterDisplay.innerHTML = display;
-
-  const addButton = document.getElementById("add-water-btn");
-  if (addButton) {
-      addButton.disabled = state.waterCount >= WATER_GOAL;
-      addButton.textContent = state.waterCount >= WATER_GOAL ? "Meta Atingida! 🎉" : "+ 1 Copo";
-  }
+function renderWater() {
+    const display = document.getElementById('water-display');
+    if (!display) return;
+    
+    let html = '';
+    const max = 8;
+    for (let i = 0; i < max; i++) {
+        const isFilled = i < state.waterCount;
+        // Use emojis para os copos
+        html += `<span class="water-cup" style="font-size: 30px; opacity: ${isFilled ? 1 : 0.4}; margin-right: 5px;">💧</span>`;
+    }
+    
+    if (state.waterCount > 0) {
+        display.innerHTML = `<p style="font-size: 18px; font-weight: bold; color: var(--cor-detalhe);">Você bebeu ${state.waterCount} de ${max} copos! 💙</p>${html}`;
+    } else {
+        display.innerHTML = `<p class="water-placeholder">Beba seu primeiro copo! (0/${max})</p>`;
+    }
 }
 
 function addWater() {
-  if (state.waterCount < WATER_GOAL) {
-    state.waterCount++;
-    saveState(state);
-    renderWaterTracker();
-  }
+    state.waterCount = Math.min(state.waterCount + 1, 12); // Limita para não ter copos infinitos
+    renderWater();
+    saveState();
 }
 
-// --- 3. MOOD TRACKER ---
+// --- 4. FUNCIONALIDADES DE METAS ---
 
-const MOODS = [
-    { emoji: '😭', name: 'Triste' },
-    { emoji: '😔', name: 'Desanimada' },
-    { emoji: '😐', name: 'Neutro' },
-    { emoji: '😊', name: 'Feliz' },
-    { emoji: '😍', name: 'Apaixonada' },
-];
+function renderGoals() {
+    const list = document.getElementById('goals-list');
+    if (!list) return;
 
-function renderMoodTracker() {
-    const moodEmojis = document.getElementById("mood-emojis");
-    if (!moodEmojis) return;
-
-    if (state.moodToday) {
-        // Se o humor já foi escolhido, mostra apenas o escolhido
-        const currentMood = MOODS.find(m => m.emoji === state.moodToday);
-        moodEmojis.innerHTML = `<span style="font-size: 3.5em;">${currentMood.emoji}</span><p style="font-size: 1.1em; color: var(--accent); margin-top: 5px;">Você está se sentindo ${currentMood.name} hoje!</p>`;
-        return;
-    }
-    
-    // Se o humor não foi escolhido, mostra as opções
-    moodEmojis.innerHTML = '';
-    MOODS.forEach(mood => {
-        const span = document.createElement('span');
-        span.textContent = mood.emoji;
-        span.title = mood.name;
-        span.style.cursor = 'pointer';
-        span.style.transition = 'transform 0.1s';
-        span.onclick = () => setMood(mood.emoji);
-        span.onmouseover = () => span.style.transform = 'scale(1.2)';
-        span.onmouseout = () => span.style.transform = 'scale(1)';
-        moodEmojis.appendChild(span);
-    });
+    list.innerHTML = state.goals.map((goal, index) => `
+        <li>
+            <input type="checkbox" id="goal-${index}" class="goal-checkbox" ${goal.done ? 'checked' : ''} onchange="toggleGoal(${index})">
+            <span class="goal-text ${goal.done ? 'done' : ''}">${goal.text}</span>
+            <button class="del-btn" onclick="deleteGoal(${index})">❌</button>
+        </li>
+    `).join('');
 }
 
-function setMood(emoji) {
-    state.moodToday = emoji;
-    saveState(state);
-    renderMoodTracker();
-}
-
-
-// --- INICIALIZAÇÃO E EVENT LISTENERS ---
-
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Mensagens: Listener para o botão 'Próxima Mensagem'
-    const nextMsgBtn = document.getElementById("next-msg");
-    if (nextMsgBtn) {
-        nextMsgBtn.addEventListener("click", () => {
-          state.messageIndex = (state.messageIndex + 1) % MESSAGES.length;
-          saveState(state);
-          showMessage();
-        });
-    }
-    
-    // 2. Metas: Listener para adicionar nova meta
-    const newGoalInput = document.getElementById("new-goal");
-    const addGoalBtn = document.getElementById("add-goal-btn"); // ID CORRETO
-    if (addGoalBtn && newGoalInput) {
-        addGoalBtn.addEventListener("click", () => {
-            const v = newGoalInput.value.trim();
-            if (v) {
-                state.goals.push({text: v, done: false});
-                newGoalInput.value = "";
-                saveState(state);
-                renderGoals();
-            }
-        });
-        
-        // Permite adicionar metas com a tecla Enter
-        newGoalInput.addEventListener("keypress", (e) => {
-             if (e.key === 'Enter') {
-                 addGoalBtn.click();
-                 e.preventDefault(); 
-             }
-        });
-    }
-    
-    // 3. Hidratação: Listener para o botão 'Adicionar Copo'
-    const addWaterBtn = document.getElementById("add-water-btn");
-    if (addWaterBtn) {
-        addWaterBtn.addEventListener("click", addWater);
-    }
-
-    // --- Renderização Inicial ---
-    renderGoals();
-    showMessage();
-    renderWaterTracker();
-    renderMoodTracker();
-});
+function toggleGoal(index) {
+    state.goals[index
